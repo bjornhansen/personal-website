@@ -1,21 +1,34 @@
 import Image from "next/image";
+import Link from "next/link";
 
 const year = new Date().getFullYear();
 
-export default function Footer() {
+export default function Footer({page}) {
     return (
-        <header>
-            <ol>
-                <li>Home</li>
-                <li>Portfolio</li>
-                <li>Writing</li>
-                <li>Contact</li>
-            </ol>
-            <div>
-                <Image src="/linkedin.svg" alt="Linkedin link and icon" width={15} height={15}></Image>
-                <Image src="/github.svg" alt="Linkedin link and icon" width={15} height={15}></Image>
+        <footer className={`max-w-screen-sm mx-auto text-center bg-white border drop-shadow-lg rounded-3xl p-6 mb-10`}>
+            <div className={`flex space-x-3 justify-center mb-6`}>
+                <span className={page === 'home' ? 'underline' : ''}>
+                    <Link href={`/`}>Home</Link>
+                </span>
+                <span className={page === 'portfolio' ? 'underline' : ''}>
+                    <Link href={`/portfolio`}>Portfolio</Link>
+                </span>
+                <span className={page === 'writing' ? 'underline' : ''}>
+                    <Link href={`/writing`}>Writing</Link>
+                </span>
+                <span className={page === 'contact' ? 'underline' : ''}>
+                    <Link href={`/contact`}>Contact</Link>
+                </span>
+            </div>
+            <div className={`flex space-x-3 justify-center mb-6`}>
+                <a href={`https://www.linkedin.com/in/bjornmhansen/`} target={`_blank`}>
+                    <Image src="/linkedin.svg" alt="Linkedin link and icon" width={25} height={25}></Image>
+                </a>
+                <a href={`https://github.com/bjornhansen`} target={`_blank`}>
+                    <Image src="/github.svg" alt="Linkedin link and icon" width={25} height={25}></Image>
+                </a>
             </div>
             <p>Copyright {year} Bjorn Hansen</p>
-        </header>
+        </footer>
     )
 }
