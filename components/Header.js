@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 
+
 export default function Header({page}) {
     return (
-        <header className="flex flex-row justify-between items-center p-4">
+        <header className="flex flex-col md:flex-row space-y-6 md:space-y-0 justify-between items-center p-4">
             <Link href={`/`} className={`text-3xl font-extrabold`}>Bjorn Hansen</Link>
             <div className={`flex space-x-3`}>
                 <a href={`https://www.linkedin.com/in/bjornmhansen/`} target={`_blank`}>

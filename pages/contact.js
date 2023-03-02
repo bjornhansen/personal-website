@@ -1,19 +1,25 @@
 import Head from 'next/head'
 import Header from 'components/Header'
 import Footer from 'components/Footer'
-import { Widget } from '@typeform/embed-react'
+import { PopupButton } from '@typeform/embed-react'
 
 export default function Contact() {
     return (
         <>
             <Head>
                 <title>Bjorn Hansen | Contact</title>
-                <meta name="description" content="Contact Bjorn Hansen with this form."/>
+                <meta name="description" content="Get in touch with Bjorn Hansen by completing the form on this page. I'd love to hear from you!"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <link rel="icon" href="/favicon.ico"/>
+                <link rel="shortcut icon" href="/favicon.ico" />
             </Head>
             <Header page={`contact`}></Header>
-            <Widget id="XDkBu8PP" style={{"width": "800px", "height": "600px"}} className="max-w-screen-lg mx-auto my-32" />
+
+            <div className={`text-center my-12 md:my-48`}>
+                <PopupButton id="XDkBu8PP" className={`text-white bg-blue-500 p-4 rounded-2xl font-bold text-xl`}>
+                    Contact Bjorn
+                </PopupButton>
+            </div>
+
             <Footer page={`contact`}></Footer>
         </>
     )

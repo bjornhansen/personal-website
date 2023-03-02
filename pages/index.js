@@ -7,10 +7,10 @@ export default function Home() {
     return (
         <>
             <Head>
-                <title>Bjorn Hansen</title>
-                <meta name="description" content="Bjorn Hansen's personal website."/>
+                <title>Bjorn Hansen | Entrepreneur and Full Stack Engineer</title>
+                <meta name="description" content="Bjorn Hansen is an entrepreneur & full stack engineer with experience working in startups. Check out my resume and portfolio or hit me up! Currently in Oregon."/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <link rel="icon" href="/favicon.ico"/>
+                <link rel="shortcut icon" href="/favicon.ico" />
             </Head>
             <Header page={`home`}></Header>
             <Hero></Hero>
