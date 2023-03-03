@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import {PopupButton} from "@typeform/embed-react";
 
 const year = new Date().getFullYear();
 
@@ -8,18 +9,23 @@ export default function Footer({page}) {
         <footer className={`max-w-screen-sm mx-auto`}>
             <div className={`text-center bg-white border drop-shadow-lg rounded-3xl p-6 mb-10 mx-2`}>
                 <div className={`flex space-x-3 justify-center mb-6`}>
-                    <span className={page === 'home' ? 'underline' : ''}>
-                        <Link href={`/`}>Home</Link>
-                    </span>
-                    <span className={page === 'portfolio' ? 'underline' : ''}>
-                        <Link href={`/portfolio`}>Portfolio</Link>
-                    </span>
-                    <span className={page === 'writing' ? 'underline' : ''}>
-                        <Link href={`/writing`}>Writing</Link>
-                    </span>
-                    <span className={page === 'contact' ? 'underline' : ''}>
-                        <Link href={`/contact`}>Contact</Link>
-                    </span>
+                    <span className={`hover:text-slate-600`}>
+                    <Link href={`/`}>Home</Link>
+                </span>
+                    <span className={`hover:text-slate-600`}>
+                    <a target="_blank" href={`https://docs.google.com/document/d/e/2PACX-1vRJPiahOB91d8DlV2EwyvnfqhKxWMJ7_GhihleHcGac9GyGgIMlVVhvtuXpvm2x7-oYFKXWCGp-ViDo/pub`}>Résumé</a>
+                </span>
+                    <span className={`hover:text-slate-600`}>
+                    <Link href={`#portfolio`}>Portfolio</Link>
+                </span>
+                    <span className={`hover:text-slate-600`}>
+                    <Link href={`#writing`}>Writing</Link>
+                </span>
+                    <span className={`hover:text-slate-600`}>
+                    <PopupButton id="XDkBu8PP">
+                        Contact
+                    </PopupButton>
+                </span>
                 </div>
                 <div className={`flex space-x-3 justify-center mb-6`}>
                     <a href={`https://www.linkedin.com/in/bjornmhansen/`} target={`_blank`}>

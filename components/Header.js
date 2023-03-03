@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import {PopupButton} from "@typeform/embed-react";
 
 
 export default function Header({page}) {
@@ -15,17 +16,22 @@ export default function Header({page}) {
                 </a>
             </div>
             <div className={`flex space-x-3`}>
-                <span className={page === 'home' ? 'underline' : ''}>
+                <span className={`hover:text-slate-600`}>
                     <Link href={`/`}>Home</Link>
                 </span>
-                <span className={page === 'portfolio' ? 'underline' : ''}>
-                    <Link href={`/portfolio`}>Portfolio</Link>
+                <span className={`hover:text-slate-600`}>
+                    <a target="_blank" href={`https://docs.google.com/document/d/e/2PACX-1vRJPiahOB91d8DlV2EwyvnfqhKxWMJ7_GhihleHcGac9GyGgIMlVVhvtuXpvm2x7-oYFKXWCGp-ViDo/pub`}>Résumé</a>
                 </span>
-                <span className={page === 'writing' ? 'underline' : ''}>
-                    <Link href={`/writing`}>Writing</Link>
+                <span className={`hover:text-slate-600`}>
+                    <Link href={`#portfolio`}>Portfolio</Link>
                 </span>
-                <span className={page === 'contact' ? 'underline' : ''}>
-                    <Link href={`/contact`}>Contact</Link>
+                <span className={`hover:text-slate-600`}>
+                    <Link href={`#writing`}>Writing</Link>
+                </span>
+                <span className={`hover:text-slate-600`}>
+                    <PopupButton id="XDkBu8PP">
+                        Contact
+                    </PopupButton>
                 </span>
             </div>
         </header>
