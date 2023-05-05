@@ -20,7 +20,7 @@ export default function Header({page}) {
                     <Link href={`/`}>Home</Link>
                 </span>
                 <span className={`hover:text-slate-600`}>
-                    <a target="_blank" href={`https://docs.google.com/document/d/e/2PACX-1vRJPiahOB91d8DlV2EwyvnfqhKxWMJ7_GhihleHcGac9GyGgIMlVVhvtuXpvm2x7-oYFKXWCGp-ViDo/pub`}>Résumé</a>
+                    <a target="_blank" href={`https://docs.google.com/document/d/e/2PACX-1vRTOG0DPT0GjcqezQztmnvFAw6tiR3StPyr6u1gcVZWiT9d4fTkpn-No-1VRDtQkBjiQPIIKMMNqLKm/pub`}>Résumé</a>
                 </span>
                 <span className={`hover:text-slate-600`}>
                     <Link href={`#portfolio`}>Portfolio</Link>

@@ -48,21 +48,22 @@ export default function Home() {
                     imageUrl={`/goodist.png`}
                     imageAlt={`An image of the goodist application running on an iPhone`}
                 ></PortfolioItem>
-
-                <PortfolioItem
-                    title={`CityIndex`}
-                    description={`I built this proof of concept for a web app designed to give people in participating cities a way to search for local vehicles, jobs, and housing. Existing solutions are scattered (Craigslist, Zillow, Autotrader, etc...) and can be difficult to use. The idea was to offer listings that were curated to ensure quality and didn't have annoying ads or misleading sponsored items.`}
-                    skills={['Web Scraping', 'Apify', 'Algolia', 'Firebase', 'JavaScript', 'jQuery']}
-                    linkUrl={`https://city-pb.web.app/`}
-                    imageUrl={`/cityindex.png`}
-                    imageAlt={`An image of the cityindex application running on a laptop`}
-                ></PortfolioItem>
             </div>
 
             <div id="writing" className={`max-w-screen-lg mx-auto text-center p-3 mt-6 md:mt-24`}>
                 <h1 className={`font-inter text-4xl md:text-6xl font-extrabold mb-8 mx-2`}>Writing</h1>
             </div>
             <div className={`mx-2`}>
+                <WritingItem
+                    title={`Set up a development environment for React using Create React App and VS Code`}
+                    description={`In this blog post, I will show you how to use Create React App and VS Code to create a simple React.js project and run it on your local machine.`}
+                    linkUrl={`https://medium.com/@blmhansen/set-up-a-development-environment-for-react-using-create-react-app-and-vs-code-9c608c19f216`}
+                    publicationName={`Medium`}
+                    publishDate={`April 11th 2023`}
+                    imageUrl={`/m-logo.png`}
+                    imageAlt={`Logo of Medium`}
+                ></WritingItem>
+
                 <WritingItem
                     title={`How to Choose the Best Programming Language to Learn First`}
                     description={`Which programming language should you learn first? The answer is: just pick one and start learning!`}
