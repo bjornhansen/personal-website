@@ -11,7 +11,7 @@ export default function WritingItem({title, description, linkUrl, publicationNam
                 <p className={`text-slate-400 mb-6`}>{publishDate}</p>
                 <p className={`mb-6`}>{description}</p>
                 {linkUrl &&
-                    <a href={linkUrl} target="_blank" className={`underline text-xl hover:text-slate-600`}>Read in {publicationName} →</a>
+                    <a href={linkUrl} target="_blank" className={`underline text-xl hover:text-slate-600`}>Read on {publicationName} →</a>
                 }
             </div>
         </div>
