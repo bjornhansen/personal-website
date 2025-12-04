@@ -11,7 +11,7 @@ export default function PortfolioItem({
   let skillsIterator = 0
   return (
     <div
-      className={`max-w-screen-lg mx-auto flex flex-col space-y-12 py-12 md:py-24 first:pt-12 last:mb-12 border-t first:border-t-0`}
+      className={`max-w-(--breakpoint-lg) mx-auto flex flex-col space-y-12 py-12 md:py-24 first:pt-12 last:mb-12 border-t first:border-t-0`}
     >
       <div className={`flex justify-center`}>
         <Image src={imageUrl} alt={imageAlt} width={600} height={400}></Image>

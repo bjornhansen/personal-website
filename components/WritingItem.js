@@ -11,7 +11,7 @@ export default function WritingItem({
 }) {
   return (
     <div
-      className={`max-w-screen-lg mx-auto flex md:space-x-12 my-12 md:my-32`}
+      className={`max-w-(--breakpoint-lg) mx-auto flex md:space-x-12 my-12 md:my-32`}
     >
       <div className={`hidden md:block`}>
         <Image src={imageUrl} alt={imageAlt} width={200} height={200}></Image>

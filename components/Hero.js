@@ -3,7 +3,7 @@ import Image from 'next/image'
 export default function Hero() {
   return (
     <div
-      className={`max-w-screen-md mx-auto flex items-center space-y-12 flex-col my-12 mb-36
+      className={`max-w-(--breakpoint-md) mx-auto flex items-center space-y-12 flex-col my-12 mb-36
             md:flex-row md:space-x-12 md:space-y-0 md:my-48`}
     >
       <Image

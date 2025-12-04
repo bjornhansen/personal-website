@@ -5,7 +5,7 @@ const year = new Date().getFullYear()
 
 export default function Footer({ page }) {
   return (
-    <footer className={`max-w-screen-sm mx-auto`}>
+    <footer className={`max-w-(--breakpoint-sm) mx-auto`}>
       <div
         className={`text-center bg-white border drop-shadow-lg rounded-3xl p-6 mb-10 mx-2`}
       >

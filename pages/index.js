@@ -22,7 +22,7 @@ export default function Home() {
 
       <div
         id='portfolio'
-        className={`max-w-screen-lg mx-auto text-center p-3 mt-6 md:mt-24`}
+        className={`max-w-(--breakpoint-lg) mx-auto text-center p-3 mt-6 md:mt-24`}
       >
         <h1
           className={`font-inter text-4xl md:text-6xl font-extrabold mb-8 mx-2`}

@@ -16,9 +16,8 @@
     "react-dom": "^19.2.1"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.22",
-    "postcss": "^8.5.1",
+    "@tailwindcss/postcss": "^4.1.17",
     "prettier": "^3.7.4",
-    "tailwindcss": "^3.4.17"
+    "tailwindcss": "^4.1.17"
   }
 }
