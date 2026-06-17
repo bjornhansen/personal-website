@@ -2,34 +2,39 @@ import Image from 'next/image'
 
 export default function Hero() {
   return (
-    <div
-      className={`max-w-(--breakpoint-md) mx-auto flex items-center space-y-12 flex-col my-12 mb-36
-            md:flex-row md:space-x-12 md:space-y-0 md:my-48`}
-    >
+    <section className='mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-10 px-4 py-16 text-center md:flex-row md:gap-14 md:py-24 md:text-left'>
       <Image
-        src={`/hey.png`}
-        alt={`Image of Bjorn Hansen saying "Hey"`}
-        width={300}
-        height={300}
-      ></Image>
-      <div className={`flex flex-col`}>
-        <h1 className={`font-inter text-6xl font-extrabold mb-8`}>
-          I&apos;m Bjorn
+        src='/hey.png'
+        alt='Image of Bjorn Hansen saying "Hey"'
+        width={220}
+        height={220}
+        priority
+        className='shrink-0'
+      />
+      <div className='flex flex-col items-center md:items-start'>
+        <h1 className='font-inter text-4xl font-semibold tracking-tight md:text-5xl'>
+          Head of Software
         </h1>
-        <p
-          className={`font-inter text-4xl font-extrabold mb-6 text-orange-500`}
+        <a
+          href='https://www.citydetect.com/'
+          target='_blank'
+          className='mt-3 flex items-center gap-2.5 transition-opacity hover:opacity-80'
         >
-          Entrepreneur
-        </p>
-        <p
-          className={`font-inter text-4xl font-extrabold mb-6 text-emerald-600`}
-        >
-          Software engineer
-        </p>
-        <p className={`font-inter text-4xl font-extrabold text-blue-600`}>
-          Chill guy
+          <Image
+            src='/citydetect-logo.png'
+            alt='City Detect logo'
+            width={40}
+            height={40}
+            className='shrink-0'
+          />
+          <span className='font-inter text-2xl tracking-tight text-brand md:text-3xl dark:text-brand-dark'>
+            City Detect
+          </span>
+        </a>
+        <p className='mt-6 max-w-md text-lg leading-relaxed text-slate-600 dark:text-slate-400'>
+          Using AI to build cleaner, safer, and more livable cities.
         </p>
       </div>
-    </div>
+    </section>
   )
 }

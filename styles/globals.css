@@ -1,9 +1,18 @@
 @import 'tailwindcss';
 
+/* Class-based dark mode so it can be toggled (defaults to the device
+   preference, set by the inline script in app/layout.js before paint). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-*: initial;
   --font-sans: var(--font-open-sans), sans-serif;
   --font-inter: var(--font-inter), sans-serif;
+
+  /* Brand green, matched to the City Detect logo. `brand` reads on light
+     backgrounds; `brand-dark` is lightened for dark backgrounds. */
+  --color-brand: #1a9e48;
+  --color-brand-dark: #3ed074;
 }
 
 /*
