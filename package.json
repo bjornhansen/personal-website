@@ -21,5 +21,8 @@
     "@tailwindcss/postcss": "^4.3.1",
     "prettier": "^3.8.4",
     "tailwindcss": "^4.3.1"
+  },
+  "overrides": {
+    "postcss": "^8.5.10"
   }
 }
