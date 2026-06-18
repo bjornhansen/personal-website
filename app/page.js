@@ -35,93 +35,79 @@ export default function Home() {
 
       <Hero />
 
-      {/* Positioning */}
-      <section id='about' className='mx-auto max-w-(--breakpoint-md) px-4'>
-        <p className='text-xl leading-relaxed text-slate-700 md:text-2xl dark:text-slate-300'>
-          I&apos;m an engineering leader, builder, and entrepreneur. As Head of
-          Software at City Detect, I lead the team building an AI-powered
-          platform that turns street-level imagery data into insight cities and
-          other partners can act on. Earlier I co-founded Blackbird, a
-          coding-education startup that taught more than 15,000 middle and high
-          school students. I care most about building things that do real work
-          in the world, and about building the amazing teams that make it
-          happen.
-        </p>
-      </section>
+      <div className='mx-auto max-w-[760px] px-8'>
+        {/* What I'm building now */}
+        <section id='work'>
+          <PortfolioItem
+            number='01'
+            label="What I'm building"
+            title='City Detect'
+            role='Head of Software'
+            period='2023 — present'
+            description='City Detect uses AI to build cleaner, safer, and more livable cities — turning street-level imagery and data into insight that cities can act on. I lead the software team building and scaling the platform.'
+            skills={[
+              'AI / ML',
+              'Computer Vision',
+              'Python',
+              'Cloud',
+              'Data Platforms',
+            ]}
+            linkUrl='https://www.citydetect.com/'
+          />
+        </section>
 
-      {/* What I'm building now */}
-      <section id='work' className='mx-auto max-w-(--breakpoint-md) px-4 pt-20'>
-        <h2 className='mb-6 font-inter text-3xl font-extrabold tracking-tight md:text-4xl'>
-          What I&apos;m building
-        </h2>
-        <PortfolioItem
-          title='City Detect'
-          role='Head of Software'
-          period='2023 — present'
-          description='City Detect uses AI to build cleaner, safer, and more livable cities — turning street-level imagery and data into insight that cities can act on. I lead the software team building and scaling the platform.'
-          skills={[
-            'AI / ML',
-            'Computer Vision',
-            'Python',
-            'Cloud',
-            'Data Platforms',
-          ]}
-          linkUrl='https://www.citydetect.com/'
-        />
-      </section>
+        {/* Background */}
+        <section id='background'>
+          <PortfolioItem
+            number='02'
+            label='Background'
+            title='Blackbird'
+            role='Co-founder'
+            period='Previous startup'
+            description='Blackbird was a coding-education platform used in K-12 schools. We helped teach over 15,000 students to code in the classroom and demonstrated strong educational efficacy in pilots with prominent school districts in the United States and abroad, and released 4 popular Hour of Code activities on Code.org.'
+            skills={[
+              'JavaScript',
+              'jQuery',
+              'PHP',
+              'PostgreSQL',
+              'Sass',
+              'Bootstrap',
+              'AWS',
+            ]}
+            linkUrl='https://www.blackbirdcode.com/'
+          />
+        </section>
+      </div>
 
-      {/* Background */}
-      <section
-        id='background'
-        className='mx-auto max-w-(--breakpoint-md) px-4 pt-20'
-      >
-        <h2 className='mb-6 font-inter text-3xl font-extrabold tracking-tight md:text-4xl'>
-          Background
-        </h2>
-        <PortfolioItem
-          title='Blackbird'
-          role='Co-founder'
-          period='Previous startup'
-          description='Blackbird was a coding-education platform used in K-12 schools. We helped teach over 15,000 students to code in the classroom and demonstrated strong educational efficacy in pilots with prominent school districts in the United States and abroad, and released 4 popular Hour of Code activities on Code.org.'
-          skills={[
-            'JavaScript',
-            'jQuery',
-            'PHP',
-            'PostgreSQL',
-            'Sass',
-            'Bootstrap',
-            'AWS',
-          ]}
-          linkUrl='https://www.blackbirdcode.com/'
-        />
-      </section>
-
-      {/* Contact CTA */}
-      <section
-        id='contact'
-        className='mx-auto max-w-(--breakpoint-md) px-4 pt-20 pb-24 text-center'
-      >
-        <h2 className='mb-6 font-inter text-3xl font-extrabold tracking-tight md:text-4xl'>
-          Get in touch
-        </h2>
-        <p className='mb-8 text-xl text-slate-700 dark:text-slate-300'>
-          Always happy to talk engineering, startups, or City Detect. I share
-          most of what I&apos;m thinking about on LinkedIn.
-        </p>
-        <div className='flex flex-col justify-center gap-4 md:flex-row'>
-          <a
-            href='mailto:blmhansen@gmail.com'
-            className='text-xl underline underline-offset-4 hover:text-brand dark:hover:text-brand-dark'
-          >
-            Email me →
-          </a>
-          <a
-            href='https://www.linkedin.com/in/bjornmhansen/'
-            target='_blank'
-            className='text-xl underline underline-offset-4 hover:text-brand dark:hover:text-brand-dark'
-          >
-            Connect on LinkedIn →
-          </a>
+      {/* Contact CTA — full-bleed dark band (dark in both modes) */}
+      <section id='contact' className='bg-[#1A1A17] text-[#FBFAF6]'>
+        <div className='mx-auto max-w-[760px] px-8 py-[72px]'>
+          <p className='mb-6 font-mono text-xs tracking-[0.16em] text-[#3ED074] uppercase'>
+            03 — Get in touch
+          </p>
+          <h2 className='font-serif text-[52px] font-normal tracking-[-0.02em] leading-tight'>
+            Let&apos;s talk.
+          </h2>
+          <p className='mt-6 max-w-[560px] font-serif text-[21px] leading-[1.55] text-[#C9C8C0]'>
+            Always happy to talk engineering, startups, or City Detect. I share
+            most of what I&apos;m thinking about on LinkedIn.
+          </p>
+          <div className='mt-10 flex flex-col gap-9 sm:flex-row'>
+            <a
+              href='mailto:blmhansen@gmail.com'
+              className='inline-block w-fit border-b border-[#3ED074] pb-px text-[#3ED074] transition-opacity hover:opacity-80'
+            >
+              blmhansen@gmail.com →
+            </a>
+            <a
+              href='https://www.linkedin.com/in/bjornmhansen/'
+              target='_blank'
+              rel='noreferrer'
+              className='inline-block w-fit border-b border-[#FBFAF6] pb-px text-[#FBFAF6] transition-opacity hover:opacity-80'
+            >
+              Connect on LinkedIn →
+            </a>
+          </div>
         </div>
       </section>
 

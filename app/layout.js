@@ -1,9 +1,28 @@
-import { Inter, Open_Sans } from 'next/font/google'
+import { Newsreader, JetBrains_Mono, Hanken_Grotesk } from 'next/font/google'
 import Script from 'next/script'
+import { SpeedInsights } from '@vercel/speed-insights/next'
+import { Analytics } from '@vercel/analytics/next'
 import '@/styles/globals.css'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
-const openSans = Open_Sans({ subsets: ['latin'], variable: '--font-open-sans' })
+const newsreader = Newsreader({
+  subsets: ['latin'],
+  variable: '--font-newsreader',
+  weight: ['300', '400', '500', '600'],
+  style: ['normal', 'italic'],
+  display: 'swap',
+})
+const mono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono-new',
+  weight: ['400', '500', '700'],
+  display: 'swap',
+})
+const hanken = Hanken_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-sans-new',
+  weight: ['400', '500', '600'],
+  display: 'swap',
+})
 
 // Production domain — used for canonical URL, Open Graph, and Twitter cards.
 const SITE_URL = 'https://bjornhansen.dev'
@@ -48,12 +67,16 @@ const themeScript = `(function(){try{var t=localStorage.getItem('theme');var d=t
 
 export default function RootLayout({ children }) {
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html
+      lang='en'
+      className={`scroll-smooth ${newsreader.variable} ${mono.variable} ${hanken.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body
-        className={`${openSans.variable} font-sans ${inter.variable} bg-white text-slate-900 antialiased transition-colors dark:bg-slate-950 dark:text-slate-100`}
+        className='font-sans bg-paper text-ink antialiased transition-colors'
       >
         {children}
         <Script
@@ -67,6 +90,8 @@ export default function RootLayout({ children }) {
 
                 gtag('config', 'G-5XQNVP34CP');`}
         </Script>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   )

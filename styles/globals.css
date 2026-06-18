@@ -6,22 +6,46 @@
 
 @theme {
   --font-*: initial;
-  --font-sans: var(--font-open-sans), sans-serif;
-  --font-inter: var(--font-inter), sans-serif;
+  --font-sans: var(--font-sans-new), system-ui, sans-serif; /* Hanken Grotesk */
+  --font-serif: var(--font-newsreader), Georgia, serif; /* Newsreader  */
+  --font-mono: var(--font-mono-new), ui-monospace, monospace; /* JetBrains   */
 
-  /* Brand green, matched to the City Detect logo. `brand` reads on light
-     backgrounds; `brand-dark` is lightened for dark backgrounds. */
+  /* Editorial paper + ink palette (light mode is the default). */
+  --color-paper: #fbfaf6; /* page background            */
+  --color-ink: #1a1a17; /* headlines, rules, borders  */
+  --color-ink-80: #36352f; /* hero lead paragraph        */
+  --color-ink-70: #46453d; /* section body paragraphs    */
+  --color-meta: #6b6b62; /* skill lists                */
+  --color-muted: #8a8a82; /* periods, footer            */
+  --color-rule: #d8d6cb; /* subtle inner dividers      */
+  --color-line: #1a1a17; /* hairline rules (= ink)     */
+  --color-contact: #1a1a17; /* dark contact band          */
+  --color-contact-dim: #c9c8c0; /* dim text on contact band   */
+
+  /* Brand green — unchanged. */
   --color-brand: #1a9e48;
   --color-brand-dark: #3ed074;
 }
 
-/*
-  The default border color has changed to `currentcolor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
+/* Dark variant of the editorial palette. Overriding the token values under
+   `.dark` lets the existing `bg-paper` / `text-ink` / `text-brand` utilities
+   flip automatically. The contact band stays dark in both modes. */
+.dark {
+  --color-paper: #15140f;
+  --color-ink: #fbfaf6;
+  --color-ink-80: #d8d6cd;
+  --color-ink-70: #b7b5ac;
+  --color-meta: #8a8a82;
+  --color-muted: #6b6b62;
+  --color-rule: #38362e;
+  --color-line: #38362e; /* low-contrast warm gray rules */
+  --color-brand: #3ed074; /* green reads on dark paper    */
+}
 
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4.
+  Default borders to the editorial hairline color (ink in light, warm gray in
+  dark) so any bordered element matches the rules without an explicit utility.
 */
 @layer base {
   *,
@@ -29,6 +53,6 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentcolor);
+    border-color: var(--color-line, currentcolor);
   }
 }

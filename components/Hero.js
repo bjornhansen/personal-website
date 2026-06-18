@@ -2,38 +2,36 @@ import Image from 'next/image'
 
 export default function Hero() {
   return (
-    <section className='mx-auto flex max-w-(--breakpoint-md) flex-col items-center gap-10 px-4 py-16 text-center md:flex-row md:gap-14 md:py-24 md:text-left'>
-      <Image
-        src='/hey.png'
-        alt='Image of Bjorn Hansen saying "Hey"'
-        width={220}
-        height={220}
-        priority
-        className='shrink-0'
-      />
-      <div className='flex flex-col items-center md:items-start'>
-        <h1 className='font-inter text-4xl font-semibold tracking-tight md:text-5xl'>
-          Head of Software
-        </h1>
-        <a
-          href='https://www.citydetect.com/'
-          target='_blank'
-          className='mt-3 flex items-center gap-2.5 transition-opacity hover:opacity-80'
-        >
-          <Image
-            src='/citydetect-logo.png'
-            alt='City Detect logo'
-            width={40}
-            height={40}
-            className='shrink-0'
-          />
-          <span className='font-inter text-2xl tracking-tight text-brand md:text-3xl dark:text-brand-dark'>
-            City Detect
-          </span>
-        </a>
-        <p className='mt-6 max-w-md text-lg leading-relaxed text-slate-600 dark:text-slate-400'>
-          Using AI to build cleaner, safer, and more livable cities.
+    <section className='mx-auto max-w-[760px] px-8 pt-[72px] pb-16'>
+      <p className='mb-6 font-mono text-sm tracking-[0.18em] text-brand uppercase'>
+        Head of Software · City Detect
+      </p>
+      <h1 className='font-serif text-5xl leading-[0.98] font-normal tracking-[-0.025em] md:text-[76px]'>
+        Engineering
+        <br />
+        <span className='font-light'>leader</span>, builder &amp;
+        entrepreneur.
+      </h1>
+
+      <div className='mt-11 flex flex-col-reverse gap-11 border-t border-line pt-9 md:flex-row md:items-start'>
+        <p className='flex-1 font-serif text-[22px] leading-[1.55] text-ink-80'>
+          I&apos;m an engineering leader, builder, and entrepreneur. As Head of
+          Software at City Detect, I lead the team building an AI-powered
+          platform that turns street-level imagery data into insight cities and
+          other partners can act on. Earlier I co-founded Blackbird, a
+          coding-education startup that taught more than 15,000 middle and high
+          school students. I care most about building things that do real work
+          in the world, and about building the amazing teams that make it
+          happen.
         </p>
+        <Image
+          src='/hey.png'
+          alt='Image of Bjorn Hansen saying "Hey"'
+          width={140}
+          height={140}
+          priority
+          className='h-[140px] w-[140px] shrink-0 object-contain'
+        />
       </div>
     </section>
   )
