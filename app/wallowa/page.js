@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic'
 import { useEffect } from 'react'
 import { SECTIONS, useSceneStore } from '@/components/wallowa/store'
 import AmbientAudio from '@/components/wallowa/AmbientAudio'
+import { CURSOR_DEFAULT } from '@/components/wallowa/cursor'
 
 const Scene = dynamic(() => import('@/components/wallowa/Scene'), {
   ssr: false,
@@ -86,7 +87,10 @@ function SectionCard() {
 
 export default function WallowaPage() {
   return (
-    <main className='fixed inset-0 overflow-hidden'>
+    <main
+      className='fixed inset-0 overflow-hidden'
+      style={{ cursor: CURSOR_DEFAULT }}
+    >
       <Scene />
       <div className='pointer-events-none absolute left-0 right-0 top-0 flex items-center justify-end p-5'>
         <div className='flex items-center gap-5'>

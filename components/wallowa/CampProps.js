@@ -7,6 +7,7 @@ import { useSceneStore } from './store'
 import { terrainHeight } from './Terrain'
 import { CAMP, BEAR } from './Bear'
 import { usePrefersReducedMotion } from './hooks'
+import { CURSOR_POINTER } from './cursor'
 
 export const SPOTS = {
   building: { x: CAMP.x - 6, z: CAMP.z - 18 },
@@ -34,8 +35,8 @@ function Marker({ id, position }) {
           e.stopPropagation()
           openSection(id)
         }}
-        onPointerOver={() => (document.body.style.cursor = 'pointer')}
-        onPointerOut={() => (document.body.style.cursor = 'auto')}
+        onPointerOver={() => (document.body.style.cursor = CURSOR_POINTER)}
+        onPointerOut={() => (document.body.style.cursor = '')}
       >
         <sphereGeometry args={[0.9, 16, 16]} />
         <meshStandardMaterial
