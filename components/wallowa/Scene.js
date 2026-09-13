@@ -1,7 +1,7 @@
 'use client'
 
 import { Canvas } from '@react-three/fiber'
-import { Sky, Stars, OrbitControls } from '@react-three/drei'
+import { Sky, Stars } from '@react-three/drei'
 import * as THREE from 'three'
 import Terrain from './Terrain'
 import Lake from './Lake'
@@ -72,15 +72,6 @@ export default function Scene() {
       <Bear />
       <CampProps />
       <Greeting />
-
-      <OrbitControls
-        makeDefault
-        target={[0, 0, 20]}
-        maxPolarAngle={Math.PI / 2 - 0.05}
-        minDistance={5}
-        maxDistance={400}
-        enablePan={false}
-      />
       <CameraRig />
     </Canvas>
   )

@@ -7,52 +7,67 @@ import { useSceneStore } from './store'
 import { terrainHeight } from './Terrain'
 import { SPOTS } from './CampProps'
 import { usePrefersReducedMotion } from './hooks'
-import { BEAR } from './Bear'
 
-const DEFAULT_CAM = new THREE.Vector3(0, 28, 185)
-const DEFAULT_TARGET = new THREE.Vector3(0, 0, 20)
+const VIEWPOINTS = {
+  overview: {
+    pos: new THREE.Vector3(0, 28, 185),
+    target: new THREE.Vector3(0, 0, 20),
+  },
+}
 
-function viewFor(id) {
+function viewpointFor(id) {
+  if (VIEWPOINTS[id]) return VIEWPOINTS[id]
   const { x, z } = SPOTS[id]
   const gy = terrainHeight(x, z)
   if (id === 'contact') {
     return {
-      pos: new THREE.Vector3(x - 6, gy + 3, z + 9),
-      target: new THREE.Vector3(x, gy + 1, z),
+      pos: new THREE.Vector3(x - 7, gy + 2.6, z + 8),
+      target: new THREE.Vector3(x + 1, gy + 0.8, z - 1),
+    }
+  }
+  if (id === 'background') {
+    return {
+      pos: new THREE.Vector3(x + 7, gy + 3, z + 11),
+      target: new THREE.Vector3(x, gy + 1.6, z),
     }
   }
   return {
-    pos: new THREE.Vector3(x + 10, gy + 8, z + 16),
+    pos: new THREE.Vector3(x + 11, gy + 6.5, z + 14),
     target: new THREE.Vector3(x, gy + 2, z),
   }
 }
 
 export default function CameraRig() {
   const camera = useThree((s) => s.camera)
-  const controls = useThree((s) => s.controls)
   const activeSection = useSceneStore((s) => s.activeSection)
   const reducedMotion = usePrefersReducedMotion()
-  const goal = useRef(null)
-  const target = useRef(null)
+
+  const posGoal = useRef(new THREE.Vector3())
+  const targetGoal = useRef(new THREE.Vector3())
 
   useEffect(() => {
-    if (activeSection) {
-      goal.current = viewFor(activeSection).pos
-      target.current = viewFor(activeSection).target
-    } else {
-      goal.current = DEFAULT_CAM
-      target.current = DEFAULT_TARGET
-    }
+    const view = viewpointFor(activeSection || 'overview')
+    posGoal.current.copy(view.pos)
+    targetGoal.current.copy(view.target)
   }, [activeSection])
 
-  useFrame(() => {
-    if (!goal.current || !target.current) return
-    const t = reducedMotion ? 1 : 0.045
-    camera.position.lerp(goal.current, t)
-    if (controls) {
-      controls.target.lerp(target.current, t)
-      controls.update()
+  useFrame((state, delta) => {
+    const t = state.clock.elapsedTime
+    const speed = reducedMotion ? 1 : Math.min(1, delta * 2.4)
+
+    const desired = new THREE.Vector3().copy(posGoal.current)
+    const look = new THREE.Vector3().copy(targetGoal.current)
+    if (!reducedMotion) {
+      const driftX = Math.sin(t * 0.12) * 2.2
+      const driftY = Math.sin(t * 0.08) * 0.6
+      desired.x += driftX
+      desired.y += driftY
+      look.x += driftX * 0.05
+      look.y += driftY * 0.05
     }
+
+    camera.position.lerp(desired, speed)
+    camera.lookAt(look)
   })
 
   return null

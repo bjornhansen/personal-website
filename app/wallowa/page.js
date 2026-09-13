@@ -1,7 +1,7 @@
 'use client'
 
-import Link from 'next/link'
 import dynamic from 'next/dynamic'
+import { useEffect } from 'react'
 import { SECTIONS, useSceneStore } from '@/components/wallowa/store'
 import AmbientAudio from '@/components/wallowa/AmbientAudio'
 
@@ -28,6 +28,16 @@ function TimeOfDay() {
 function SectionCard() {
   const activeSection = useSceneStore((s) => s.activeSection)
   const closeSection = useSceneStore((s) => s.closeSection)
+
+  useEffect(() => {
+    if (!activeSection) return
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeSection()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [activeSection, closeSection])
+
   if (!activeSection) return null
   const data = SECTIONS[activeSection]
 
@@ -74,51 +84,19 @@ function SectionCard() {
   )
 }
 
-function NavHints() {
-  const openSection = useSceneStore((s) => s.openSection)
-  const activeSection = useSceneStore((s) => s.activeSection)
-  return (
-    <nav className='pointer-events-auto flex gap-3'>
-      {Object.entries(SECTIONS).map(([id, data]) => (
-        <button
-          key={id}
-          onClick={() => openSection(id)}
-          className={`font-mono text-[11px] transition-colors ${
-            activeSection === id
-              ? 'text-[#3ED074]'
-              : 'text-stone-300/60 hover:text-stone-200'
-          }`}
-        >
-          {data.number} {data.label}
-        </button>
-      ))}
-    </nav>
-  )
-}
-
 export default function WallowaPage() {
   return (
     <main className='fixed inset-0 overflow-hidden'>
       <Scene />
-      <div className='pointer-events-none absolute left-0 right-0 top-0 flex items-center justify-between p-5'>
-        <Link
-          href='/'
-          className='pointer-events-auto font-mono text-xs text-stone-300/80 mix-blend-difference'
-        >
-          ← back
-        </Link>
+      <div className='pointer-events-none absolute left-0 right-0 top-0 flex items-center justify-end p-5'>
         <div className='flex items-center gap-5'>
           <TimeOfDay />
           <AmbientAudio />
         </div>
       </div>
-      <div className='pointer-events-none absolute left-5 top-12'>
-        <NavHints />
-      </div>
       <SectionCard />
-      <p className='pointer-events-none absolute bottom-5 left-0 right-0 text-center font-mono text-xs text-stone-300/60 mix-blend-difference'>
-        Wallowa Camp — prototype · drag to look around, scroll to zoom, tap the
-        lights
+      <p className='pointer-events-none absolute bottom-5 left-0 right-0 text-center font-mono text-xs text-stone-300/60'>
+        tap the glowing lights to explore · esc to return
       </p>
     </main>
   )
