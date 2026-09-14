@@ -93,13 +93,13 @@ export default function WallowaPage() {
     >
       <Scene />
       <div className='pointer-events-none absolute left-0 right-0 top-0 flex items-center justify-end p-5'>
-        <div className='flex items-center gap-5'>
+        <div className='flex items-center gap-4 rounded-full border border-white/10 bg-[#141410]/70 px-4 py-1.5 backdrop-blur-sm'>
           <TimeOfDay />
           <AmbientAudio />
         </div>
       </div>
       <SectionCard />
-      <p className='pointer-events-none absolute bottom-5 left-0 right-0 text-center font-mono text-xs text-stone-300/60'>
+      <p className='pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-[#141410]/70 px-4 py-1.5 font-mono text-xs text-stone-300/80 backdrop-blur-sm'>
         tap the glowing lights to explore · esc to return
       </p>
     </main>

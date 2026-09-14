@@ -39,12 +39,14 @@ export default function Scene() {
       <color attach='background' args={[fogColor]} />
       <fog attach='fog' args={[fogColor, 120, 640]} />
 
-      <Sky
-        distance={3000}
-        sunPosition={[sunPosition.x, sunPosition.y, sunPosition.z]}
-        turbidity={isNight ? 2 : 10}
-        rayleigh={isNight ? 0.2 : 3}
-      />
+      {!isNight && (
+        <Sky
+          distance={3000}
+          sunPosition={[sunPosition.x, sunPosition.y, sunPosition.z]}
+          turbidity={10}
+          rayleigh={3}
+        />
+      )}
       <Stars radius={400} depth={60} count={2000} factor={5} fade speed={0.3} />
 
       {isNight && (
