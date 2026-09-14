@@ -18,6 +18,7 @@ export default function Greeting() {
   const timeOfDay = useSceneStore((s) => s.timeOfDay)
   const greeted = useSceneStore((s) => s.greeted)
   const activeSection = useSceneStore((s) => s.activeSection)
+  const bearArrived = useSceneStore((s) => s.bearArrived)
   const [expired, setExpired] = useState(false)
 
   useEffect(() => {
@@ -26,7 +27,7 @@ export default function Greeting() {
     return () => clearTimeout(id)
   }, [greeted])
 
-  const visible = !greeted && !expired && timeOfDay !== null
+  const visible = bearArrived && !greeted && !expired && timeOfDay !== null
   const y = terrainHeight(BEAR.x, BEAR.z)
 
   return (

@@ -43,8 +43,10 @@ export const useSceneStore = create((set) => ({
   isNight: false,
   activeSection: null,
   greeted: false,
+  bearArrived: false,
   setTimeOfDay: (t) =>
     set({ timeOfDay: t, isNight: t !== null && (t < 6 || t >= 20) }),
   openSection: (id) => set({ activeSection: id, greeted: true }),
   closeSection: () => set({ activeSection: null }),
+  setBearArrived: () => set({ bearArrived: true }),
 }))
