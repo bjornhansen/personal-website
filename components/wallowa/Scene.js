@@ -10,6 +10,7 @@ import CampProps from './CampProps'
 import CameraRig from './CameraRig'
 import Greeting from './Greeting'
 import Forest from './Forest'
+import GroundCover from './GroundCover'
 import { useDayNight } from './DayNight'
 import { useIsMobile } from './hooks'
 
@@ -69,7 +70,8 @@ export default function Scene() {
 
       <Terrain />
       <Lake sunColor={sunColor} nightFactor={nightFactor} />
-      <Forest count={isMobile ? 350 : 900} />
+      <Forest count={isMobile ? 280 : 700} aspenCount={isMobile ? 90 : 220} />
+      <GroundCover count={isMobile ? 1200 : 4500} />
 
       <Bear />
       <CampProps />

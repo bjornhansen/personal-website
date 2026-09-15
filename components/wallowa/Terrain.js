@@ -39,10 +39,26 @@ export function terrainHeight(x, z) {
   return h
 }
 
+// Large-scale biome noise: high values are open meadow, low values forest.
+export function meadowMask(x, z) {
+  const n = fbm(x * 0.0042 + 41.7, z * 0.0042 - 17.3, 4)
+  return (n + 1) * 0.5
+}
+
+export function lakeBowl(x, z) {
+  const lakeX = THREE.MathUtils.clamp((x + 10) / 90, -1, 1)
+  const lakeZ = THREE.MathUtils.clamp((z - 45) / 110, -1, 1)
+  return 1 - Math.min(1, Math.sqrt(lakeX * lakeX + lakeZ * lakeZ) * 1.15)
+}
+
 const cRock = new THREE.Color('#8a8178')
 const cRockDark = new THREE.Color('#5c554e')
 const cGrass = new THREE.Color('#4f6b3a')
 const cGrassDry = new THREE.Color('#7d7f4e')
+const cMeadow = new THREE.Color('#8fa14e')
+const cMeadowDry = new THREE.Color('#b3a75f')
+const cGranite = new THREE.Color('#8f8c87')
+const cGraniteWet = new THREE.Color('#6e6b66')
 const cSand = new THREE.Color('#9a8f76')
 const cSnow = new THREE.Color('#eef2f4')
 
@@ -72,17 +88,32 @@ export default function Terrain() {
       )
 
       const n = (noise2D(x * 0.08, z * 0.08) + 1) * 0.5
+      const detail = noise2D(x * 0.35, z * 0.35) * 0.07
+      const meadow = meadowMask(x, z)
 
-      if (h < WATER_LEVEL + 1.2) {
-        color.copy(cSand)
+      if (h < WATER_LEVEL + 1.6) {
+        const shore = THREE.MathUtils.smoothstep(
+          h,
+          WATER_LEVEL - 0.4,
+          WATER_LEVEL + 1.6
+        )
+        color.copy(cGraniteWet).lerp(cGranite, shore)
+        if (h < WATER_LEVEL - 1.5) color.lerp(cSand, 0.5)
       } else if (h > 26 + n * 10) {
         color.copy(cSnow)
+      } else if (meadow > 0.55) {
+        const open = THREE.MathUtils.smoothstep(meadow, 0.55, 0.75)
+        color
+          .copy(cMeadow)
+          .lerp(cMeadowDry, n * 0.5)
+          .lerp(cGrass, 1 - open)
       } else {
         color.copy(cGrass).lerp(cGrassDry, n * 0.6)
         if (h > 14) color.lerp(cRock, Math.min(1, (h - 14) / 16))
       }
       color.lerp(cRock, slope * 0.8)
       color.lerp(cRockDark, Math.max(0, n - 0.6))
+      color.offsetHSL(0, 0, detail)
 
       colors[i * 3] = color.r
       colors[i * 3 + 1] = color.g
