@@ -5,7 +5,7 @@ import * as THREE from 'three'
 import { fbm, ridged, noise2D } from './noise'
 
 const SIZE = 420
-const SEGMENTS = 220
+const SEGMENTS = 256
 const WATER_LEVEL = 0
 
 export function terrainHeight(x, z) {
@@ -13,6 +13,7 @@ export function terrainHeight(x, z) {
   const worldZ = z * 0.012
 
   let h = fbm(worldX, worldZ, 5) * 4 + 2.5
+  h += fbm(worldX * 3.7 + 91.3, worldZ * 3.7 - 44.8, 3) * 1.1
 
   const backness = THREE.MathUtils.smoothstep(-z, 30, 160)
   const peakMask = backness * THREE.MathUtils.smoothstep(
@@ -40,8 +41,9 @@ export function terrainHeight(x, z) {
 }
 
 // Large-scale biome noise: high values are open meadow, low values forest.
+// Small clearings scattered through pine forest.
 export function meadowMask(x, z) {
-  const n = fbm(x * 0.0042 + 41.7, z * 0.0042 - 17.3, 4)
+  const n = fbm(x * 0.0075 + 41.7, z * 0.0075 - 17.3, 4)
   return (n + 1) * 0.5
 }
 
@@ -101,8 +103,8 @@ export default function Terrain() {
         if (h < WATER_LEVEL - 1.5) color.lerp(cSand, 0.5)
       } else if (h > 26 + n * 10) {
         color.copy(cSnow)
-      } else if (meadow > 0.55) {
-        const open = THREE.MathUtils.smoothstep(meadow, 0.55, 0.75)
+      } else if (meadow > 0.62) {
+        const open = THREE.MathUtils.smoothstep(meadow, 0.62, 0.74)
         color
           .copy(cMeadow)
           .lerp(cMeadowDry, n * 0.5)

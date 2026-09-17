@@ -3,54 +3,8 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
-import { useSceneStore } from './store'
 import { terrainHeight } from './Terrain'
-import { CAMP, BEAR } from './Bear'
-import { usePrefersReducedMotion } from './hooks'
-import { CURSOR_POINTER } from './cursor'
-
-export const SPOTS = {
-  building: { x: CAMP.x - 6, z: CAMP.z - 18 },
-  background: { x: CAMP.x + 18, z: CAMP.z + 14 },
-  contact: { x: CAMP.x + 2, z: CAMP.z + 6 },
-}
-
-function Marker({ id, position }) {
-  const openSection = useSceneStore((s) => s.openSection)
-  const reducedMotion = usePrefersReducedMotion()
-  const ref = useRef()
-
-  useFrame((state) => {
-    if (!ref.current || reducedMotion) return
-    const t = state.clock.elapsedTime
-    const s = 1 + Math.sin(t * 2.2) * 0.12
-    ref.current.scale.set(s, s, s)
-  })
-
-  return (
-    <group position={position}>
-      <mesh
-        ref={ref}
-        onClick={(e) => {
-          e.stopPropagation()
-          openSection(id)
-        }}
-        onPointerOver={() => (document.body.style.cursor = CURSOR_POINTER)}
-        onPointerOut={() => (document.body.style.cursor = '')}
-      >
-        <sphereGeometry args={[0.9, 16, 16]} />
-        <meshStandardMaterial
-          color='#ffd97a'
-          emissive='#ffbf3f'
-          emissiveIntensity={2}
-          transparent
-          opacity={0.85}
-        />
-      </mesh>
-      <pointLight color='#ffd97a' intensity={8} distance={12} />
-    </group>
-  )
-}
+import { CAMP } from './Bear'
 
 function Tent({ position }) {
   return (
@@ -69,9 +23,8 @@ function Tent({ position }) {
 
 function Campfire({ position }) {
   const flame = useRef()
-  const reducedMotion = usePrefersReducedMotion()
   useFrame((state) => {
-    if (!flame.current || reducedMotion) return
+    if (!flame.current) return
     const t = state.clock.elapsedTime
     const s = 1 + Math.sin(t * 9) * 0.15 + Math.sin(t * 23) * 0.05
     flame.current.scale.set(s, 1.6 + Math.sin(t * 7) * 0.3, s)
@@ -129,20 +82,16 @@ function TrailheadSign({ position }) {
 }
 
 export default function CampProps() {
+  const tent = [CAMP.x - 6, CAMP.z - 18]
+  const fire = [CAMP.x + 2, CAMP.z + 6]
+  const sign = [CAMP.x + 18, CAMP.z + 14]
   return (
     <group>
-      <Tent
-        position={[SPOTS.building.x, terrainHeight(SPOTS.building.x, SPOTS.building.z), SPOTS.building.z]}
-      />
-      <Campfire
-        position={[SPOTS.contact.x, terrainHeight(SPOTS.contact.x, SPOTS.contact.z), SPOTS.contact.z]}
-      />
+      <Tent position={[tent[0], terrainHeight(tent[0], tent[1]), tent[1]]} />
+      <Campfire position={[fire[0], terrainHeight(fire[0], fire[1]), fire[1]]} />
       <TrailheadSign
-        position={[SPOTS.background.x, terrainHeight(SPOTS.background.x, SPOTS.background.z), SPOTS.background.z]}
+        position={[sign[0], terrainHeight(sign[0], sign[1]), sign[1]]}
       />
-      {Object.entries(SPOTS).map(([id, { x, z }]) => (
-        <Marker key={id} id={id} position={[x, terrainHeight(x, z) + 3, z]} />
-      ))}
       <mesh
         position={[CAMP.x, terrainHeight(CAMP.x, CAMP.z) + 0.02, CAMP.z]}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -151,10 +100,10 @@ export default function CampProps() {
         <meshStandardMaterial color='#6e5c44' roughness={1} />
       </mesh>
       <mesh
-        position={[BEAR.x, terrainHeight(BEAR.x, BEAR.z) + 0.02, BEAR.z]}
+        position={[CAMP.x - 12, terrainHeight(CAMP.x - 12, CAMP.z + 3) + 0.02, CAMP.z + 3]}
         rotation={[-Math.PI / 2, 0, 0]}
       >
-        <circleGeometry args={[2.2, 24]} />
+        <circleGeometry args={[3, 24]} />
         <meshStandardMaterial color='#57452f' roughness={1} />
       </mesh>
     </group>

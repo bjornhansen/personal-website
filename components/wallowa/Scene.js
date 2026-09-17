@@ -73,20 +73,19 @@ export default function Scene() {
       <Lake sunColor={sunColor} nightFactor={nightFactor} />
       <Suspense fallback={null}>
         <Forest
-          pines={isMobile ? 180 : 520}
+          pines={isMobile ? 220 : 650}
           snowPines={isMobile ? 50 : 140}
-          aspens={isMobile ? 80 : 200}
-          willows={isMobile ? 14 : 36}
-          bushes={isMobile ? 40 : 100}
-          berries={isMobile ? 22 : 55}
-          rocks={isMobile ? 50 : 130}
-          mossRocks={isMobile ? 24 : 60}
+          aspens={isMobile ? 50 : 130}
+          willows={isMobile ? 12 : 30}
+          bushes={isMobile ? 24 : 60}
+          berries={isMobile ? 12 : 30}
+          rocks={isMobile ? 80 : 200}
+          mossRocks={isMobile ? 36 : 90}
         />
         <GroundCover
           grass={isMobile ? 700 : 2000}
-          shortGrass={isMobile ? 250 : 700}
+          shortGrass={isMobile ? 300 : 900}
           flowers={isMobile ? 100 : 260}
-          lilypads={isMobile ? 30 : 70}
         />
       </Suspense>
 

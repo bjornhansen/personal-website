@@ -45,14 +45,14 @@ function mulberry32(seed) {
 }
 
 export default function Forest({
-  pines = 520,
+  pines = 650,
   snowPines = 140,
-  aspens = 200,
-  willows = 36,
-  bushes = 100,
-  berries = 55,
-  rocks = 130,
-  mossRocks = 60,
+  aspens = 130,
+  willows = 30,
+  bushes = 60,
+  berries = 30,
+  rocks = 200,
+  mossRocks = 90,
 }) {
   const gltfs = useGLTF(URLS)
 
@@ -94,7 +94,7 @@ export default function Forest({
         pick('pineSnow', x, h, z, 1)
         continue
       }
-      if (meadow > 0.52 && h < 14 && clump > 0.5) {
+      if (meadow > 0.64 && h < 14 && clump > 0.5) {
         if (placed.aspen.length < caps.aspen && h < 12) {
           pick('aspen', x, h, z, 1)
         } else if (h < 8 && placed.bush.length < caps.bush) {
@@ -104,7 +104,11 @@ export default function Forest({
         }
         continue
       }
-      if (meadow < 0.5 && clump > 0.32 && placed.pine.length < caps.pine) {
+      if (meadow < 0.58 && clump > 0.28 && placed.pine.length < caps.pine) {
+        pick('pine', x, h, z, 1)
+        continue
+      }
+      if (meadow < 0.58 && rand() < 0.35 && placed.pine.length < caps.pine) {
         pick('pine', x, h, z, 1)
         continue
       }
@@ -112,10 +116,10 @@ export default function Forest({
         pick('willow', x, h, z, 1)
         continue
       }
-      if (rand() < 0.25 && placed.rock.length < caps.rock) {
-        pick('rock', x, h, z, 1)
-      } else if (rand() < 0.12 && placed.rockMoss.length < caps.rockMoss) {
-        pick('rockMoss', x, h, z, 1)
+      if (rand() < 0.4 && placed.rock.length < caps.rock) {
+        pick('rock', x, h, z, 0.4 + rand() * 0.9)
+      } else if (rand() < 0.25 && placed.rockMoss.length < caps.rockMoss) {
+        pick('rockMoss', x, h, z, 0.4 + rand() * 0.9)
       }
     }
 

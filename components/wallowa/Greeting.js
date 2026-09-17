@@ -16,18 +16,15 @@ function line(hour, name = 'traveler') {
 
 export default function Greeting() {
   const timeOfDay = useSceneStore((s) => s.timeOfDay)
-  const greeted = useSceneStore((s) => s.greeted)
-  const activeSection = useSceneStore((s) => s.activeSection)
   const bearArrived = useSceneStore((s) => s.bearArrived)
   const [expired, setExpired] = useState(false)
 
   useEffect(() => {
-    if (greeted) return
     const id = setTimeout(() => setExpired(true), 12000)
     return () => clearTimeout(id)
-  }, [greeted])
+  }, [])
 
-  const visible = bearArrived && !greeted && !expired && timeOfDay !== null
+  const visible = bearArrived && !expired && timeOfDay !== null
   const y = terrainHeight(BEAR.x, BEAR.z)
 
   return (
