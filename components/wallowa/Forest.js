@@ -1,9 +1,38 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
-import { terrainHeight, meadowMask } from './Terrain'
-import { CAMP } from './Bear'
+import { terrainHeight, meadowMask, lakeBowl } from './Terrain'
+import { CAMP, BEAR } from './Bear'
+
+const model = (n) => `/models/nature/${n}.glb`
+
+const TYPES = [
+  { file: 'PineTree_1', kind: 'pine', target: 7 },
+  { file: 'PineTree_2', kind: 'pine', target: 7.5 },
+  { file: 'PineTree_3', kind: 'pine', target: 6.5 },
+  { file: 'PineTree_Snow_1', kind: 'pineSnow', target: 7 },
+  { file: 'PineTree_Snow_2', kind: 'pineSnow', target: 6 },
+  { file: 'BirchTree_2', kind: 'aspen', target: 6 },
+  { file: 'BirchTree_3', kind: 'aspen', target: 5.5 },
+  { file: 'BirchTree_Autumn_1', kind: 'aspen', target: 6.5 },
+  { file: 'Willow_1', kind: 'willow', target: 5 },
+  { file: 'Willow_3', kind: 'willow', target: 4.5 },
+  { file: 'Bush_1', kind: 'bush', target: 1.6 },
+  { file: 'Bush_2', kind: 'bush', target: 1.4 },
+  { file: 'BushBerries_1', kind: 'berries', target: 1.5 },
+  { file: 'Rock_1', kind: 'rock', target: 1.6 },
+  { file: 'Rock_2', kind: 'rock', target: 1.1 },
+  { file: 'Rock_Moss_1', kind: 'rockMoss', target: 1.4 },
+  { file: 'Rock_Moss_2', kind: 'rockMoss', target: 0.9 },
+  { file: 'WoodLog', kind: 'log', target: 1.4 },
+  { file: 'TreeStump', kind: 'stump', target: 1.2 },
+]
+
+const URLS = TYPES.map((t) => model(t.file))
+
+const KINDS = ['pine', 'pineSnow', 'aspen', 'willow', 'bush', 'berries', 'rock', 'rockMoss', 'log', 'stump']
 
 function mulberry32(seed) {
   return function () {
@@ -15,89 +44,127 @@ function mulberry32(seed) {
   }
 }
 
-function matrixAt(mesh, i, x, y, z, scale, rotY, stretch = 1) {
-  const m = new THREE.Matrix4()
-  m.compose(
-    new THREE.Vector3(x, y, z),
-    new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), rotY),
-    new THREE.Vector3(scale, scale * stretch, scale)
-  )
-  mesh.setMatrixAt(i, m)
-}
+export default function Forest({
+  pines = 520,
+  snowPines = 140,
+  aspens = 200,
+  willows = 36,
+  bushes = 100,
+  berries = 55,
+  rocks = 130,
+  mossRocks = 60,
+}) {
+  const gltfs = useGLTF(URLS)
 
-export default function Forest({ count = 700, aspenCount = 220 }) {
   const meshes = useMemo(() => {
     const rand = mulberry32(1849)
+    const caps = KINDS.reduce((acc, k) => {
+      acc[k] = { pine: pines, pineSnow: snowPines, aspen: aspens, willow: willows, bush: bushes, berries, rock: rocks, rockMoss: mossRocks, log: 3, stump: 2 }[k]
+      return acc
+    }, {})
+    const placed = KINDS.reduce((acc, k) => {
+      acc[k] = []
+      return acc
+    }, {})
 
-    const pineSpots = []
-    const aspenSpots = []
+    const pick = (kind, x, y, z, scale) => {
+      const variants = TYPES.filter((t) => t.kind === kind)
+      const t = variants[Math.floor(rand() * variants.length)]
+      placed[kind].push({ type: t, x, y, z, scale: scale * (0.85 + rand() * 0.35), rot: rand() * Math.PI * 2 })
+    }
+
     let attempts = 0
-    const limit = (count + aspenCount) * 40
-    while (attempts < limit) {
+    const needTotal = KINDS.reduce((s, k) => s + caps[k], 0)
+    const haveTotal = () => KINDS.reduce((s, k) => s + placed[k].length, 0)
+    while (haveTotal() < needTotal && attempts < needTotal * 25) {
       attempts++
       const x = (rand() - 0.5) * 400
       const z = (rand() - 0.5) * 400
       const h = terrainHeight(x, z)
-      if (h < 1.2 || h > 22) continue
-      if (Math.hypot(x - CAMP.x, z - CAMP.z) < 18) continue
-      const clump = (rand() + rand() + rand()) / 3
+      if (h < 1.4 || h > 24) continue
+      if (Math.hypot(x - CAMP.x, z - CAMP.z) < 17) continue
+      if (Math.hypot(x - BEAR.x, z - BEAR.z) < 5) continue
+      if (lakeBowl(x, z) > 0.05) continue
 
       const meadow = meadowMask(x, z)
-      if (meadow < 0.5) {
-        if (pineSpots.length >= count) continue
-        if (clump < 0.35) continue
-        pineSpots.push({ x, y: h, z, scale: 0.7 + rand() * 0.9 + clump * 0.5, rotY: rand() * Math.PI * 2 })
-      } else if (meadow > 0.52 && h < 14) {
-        if (aspenSpots.length >= aspenCount) continue
-        const grove = (rand() + rand()) / 2
-        if (grove < 0.45) continue
-        if (clump < 0.5) continue
-        aspenSpots.push({ x, y: h, z, scale: 0.9 + rand() * 0.7, rotY: rand() * Math.PI * 2 })
+      const clump = (rand() + rand() + rand()) / 3
+      const shore = lakeBowl(x, z)
+
+      if (h > 14 && placed.pineSnow.length < caps.pineSnow) {
+        pick('pineSnow', x, h, z, 1)
+        continue
+      }
+      if (meadow > 0.52 && h < 14 && clump > 0.5) {
+        if (placed.aspen.length < caps.aspen && h < 12) {
+          pick('aspen', x, h, z, 1)
+        } else if (h < 8 && placed.bush.length < caps.bush) {
+          pick('bush', x, h, z, 1)
+        } else if (placed.berries.length < caps.berries) {
+          pick('berries', x, h, z, 1)
+        }
+        continue
+      }
+      if (meadow < 0.5 && clump > 0.32 && placed.pine.length < caps.pine) {
+        pick('pine', x, h, z, 1)
+        continue
+      }
+      if (shore > 0 && shore < 0.22 && h < 3 && placed.willow.length < caps.willow) {
+        pick('willow', x, h, z, 1)
+        continue
+      }
+      if (rand() < 0.25 && placed.rock.length < caps.rock) {
+        pick('rock', x, h, z, 1)
+      } else if (rand() < 0.12 && placed.rockMoss.length < caps.rockMoss) {
+        pick('rockMoss', x, h, z, 1)
       }
     }
 
-    const pineCanopy = new THREE.InstancedMesh(
-      new THREE.ConeGeometry(1, 3.4, 6),
-      new THREE.MeshStandardMaterial({ color: '#2f4a2e', roughness: 0.95, flatShading: true }),
-      pineSpots.length
-    )
-    const pineTrunk = new THREE.InstancedMesh(
-      new THREE.CylinderGeometry(0.14, 0.2, 1, 5),
-      new THREE.MeshStandardMaterial({ color: '#4d3b28', roughness: 1 }),
-      pineSpots.length
-    )
-    const aspenCanopy = new THREE.InstancedMesh(
-      new THREE.IcosahedronGeometry(1, 1),
-      new THREE.MeshStandardMaterial({ color: '#a9b054', roughness: 0.9, flatShading: true }),
-      aspenSpots.length
-    )
-    const aspenTrunk = new THREE.InstancedMesh(
-      new THREE.CylinderGeometry(0.09, 0.12, 1, 5),
-      new THREE.MeshStandardMaterial({ color: '#d8d4c8', roughness: 0.85 }),
-      aspenSpots.length
-    )
+    placed.log.push({ type: TYPES[17], x: CAMP.x - 12, y: terrainHeight(CAMP.x - 12, CAMP.z + 3), z: CAMP.z + 3, scale: 1, rot: 0.7 })
+    placed.log.push({ type: TYPES[17], x: CAMP.x + 14, y: terrainHeight(CAMP.x + 14, CAMP.z - 8), z: CAMP.z - 8, scale: 0.9, rot: 2.4 })
+    placed.stump.push({ type: TYPES[18], x: CAMP.x + 8, y: terrainHeight(CAMP.x + 8, CAMP.z - 12), z: CAMP.z - 12, scale: 1, rot: 1.2 })
 
-    pineSpots.forEach((s, i) => {
-      matrixAt(pineCanopy, i, s.x, s.y + 2.2 * s.scale, s.z, s.scale, s.rotY)
-      matrixAt(pineTrunk, i, s.x, s.y + 0.5 * s.scale, s.z, s.scale, s.rotY)
-    })
-    aspenSpots.forEach((s, i) => {
-      matrixAt(aspenCanopy, i, s.x, s.y + 4.6 * s.scale, s.z, s.scale * 1.5, s.rotY, 0.8)
-      matrixAt(aspenTrunk, i, s.x, s.y + 1.8 * s.scale, s.z, s.scale, s.rotY, 3.8)
+    const material = new THREE.MeshStandardMaterial({
+      vertexColors: true,
+      roughness: 0.95,
+      metalness: 0,
+      flatShading: true,
     })
 
-    for (const m of [pineCanopy, pineTrunk, aspenCanopy, aspenTrunk]) {
-      m.instanceMatrix.needsUpdate = true
-    }
-    return { pineCanopy, pineTrunk, aspenCanopy, aspenTrunk }
-  }, [count, aspenCount])
+    const m = new THREE.Matrix4()
+    const q = new THREE.Quaternion()
+    const up = new THREE.Vector3(0, 1, 0)
+    const p = new THREE.Vector3()
+    const s = new THREE.Vector3()
+    const tint = new THREE.Color()
 
-  return (
-    <>
-      <primitive object={meshes.pineCanopy} />
-      <primitive object={meshes.pineTrunk} />
-      <primitive object={meshes.aspenCanopy} />
-      <primitive object={meshes.aspenTrunk} />
-    </>
-  )
+    const group = new THREE.Group()
+    TYPES.forEach((t, idx) => {
+      const instances = placed[t.kind].filter((i) => i.type.file === t.file)
+      if (!instances.length) return
+      const source = gltfs[idx].scene.children[0]
+      const geo = source.geometry.clone()
+      geo.computeBoundingBox()
+      const height = geo.boundingBox.max.y - geo.boundingBox.min.y
+      const min = geo.boundingBox.min.y
+      const mesh = new THREE.InstancedMesh(geo, material, instances.length)
+      instances.forEach((inst, i) => {
+        const scale = (t.target / height) * inst.scale
+        q.setFromAxisAngle(up, inst.rot)
+        p.set(inst.x, inst.y - min * scale, inst.z)
+        s.set(scale, scale, scale)
+        m.compose(p, q, s)
+        mesh.setMatrixAt(i, m)
+        const v = 0.85 + mulberry32(i * 31 + idx)( ) * 0.3
+        tint.setScalar(v)
+        mesh.setColorAt(i, tint)
+      })
+      mesh.instanceMatrix.needsUpdate = true
+      if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+      group.add(mesh)
+    })
+
+    return group
+  }, [gltfs, pines, snowPines, aspens, willows, bushes, berries, rocks, mossRocks])
+
+  return <primitive object={meshes} />
 }

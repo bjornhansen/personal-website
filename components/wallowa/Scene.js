@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Sky, Stars } from '@react-three/drei'
 import * as THREE from 'three'
@@ -70,8 +71,24 @@ export default function Scene() {
 
       <Terrain />
       <Lake sunColor={sunColor} nightFactor={nightFactor} />
-      <Forest count={isMobile ? 280 : 700} aspenCount={isMobile ? 90 : 220} />
-      <GroundCover count={isMobile ? 1200 : 4500} />
+      <Suspense fallback={null}>
+        <Forest
+          pines={isMobile ? 180 : 520}
+          snowPines={isMobile ? 50 : 140}
+          aspens={isMobile ? 80 : 200}
+          willows={isMobile ? 14 : 36}
+          bushes={isMobile ? 40 : 100}
+          berries={isMobile ? 22 : 55}
+          rocks={isMobile ? 50 : 130}
+          mossRocks={isMobile ? 24 : 60}
+        />
+        <GroundCover
+          grass={isMobile ? 700 : 2000}
+          shortGrass={isMobile ? 250 : 700}
+          flowers={isMobile ? 100 : 260}
+          lilypads={isMobile ? 30 : 70}
+        />
+      </Suspense>
 
       <Bear />
       <CampProps />
