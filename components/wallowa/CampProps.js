@@ -3,8 +3,54 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
+import { useSceneStore } from './store'
 import { terrainHeight } from './Terrain'
 import { CAMP } from './Bear'
+import { usePrefersReducedMotion } from './hooks'
+import { CURSOR_POINTER } from './cursor'
+
+export const SPOTS = {
+  building: { x: CAMP.x - 6, z: CAMP.z - 18 },
+  background: { x: CAMP.x + 18, z: CAMP.z + 14 },
+  contact: { x: CAMP.x + 2, z: CAMP.z + 6 },
+}
+
+function Marker({ id, position }) {
+  const openSection = useSceneStore((s) => s.openSection)
+  const reducedMotion = usePrefersReducedMotion()
+  const ref = useRef()
+
+  useFrame((state) => {
+    if (!ref.current || reducedMotion) return
+    const t = state.clock.elapsedTime
+    const s = 1 + Math.sin(t * 2.2) * 0.12
+    ref.current.scale.set(s, s, s)
+  })
+
+  return (
+    <group position={position}>
+      <mesh
+        ref={ref}
+        onClick={(e) => {
+          e.stopPropagation()
+          openSection(id)
+        }}
+        onPointerOver={() => (document.body.style.cursor = CURSOR_POINTER)}
+        onPointerOut={() => (document.body.style.cursor = '')}
+      >
+        <sphereGeometry args={[0.9, 16, 16]} />
+        <meshStandardMaterial
+          color='#ffd97a'
+          emissive='#ffbf3f'
+          emissiveIntensity={2}
+          transparent
+          opacity={0.85}
+        />
+      </mesh>
+      <pointLight color='#ffd97a' intensity={8} distance={12} />
+    </group>
+  )
+}
 
 function Tent({ position }) {
   return (
@@ -92,6 +138,9 @@ export default function CampProps() {
       <TrailheadSign
         position={[sign[0], terrainHeight(sign[0], sign[1]), sign[1]]}
       />
+      {Object.entries(SPOTS).map(([id, { x, z }]) => (
+        <Marker key={id} id={id} position={[x, terrainHeight(x, z) + 3, z]} />
+      ))}
       <mesh
         position={[CAMP.x, terrainHeight(CAMP.x, CAMP.z) + 0.02, CAMP.z]}
         rotation={[-Math.PI / 2, 0, 0]}
