@@ -1,10 +1,13 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { withAtmosphere } from './atmosphere'
 import { terrainHeight, meadowMask, lakeBowl } from './Terrain'
 import { CAMP, BEAR } from './Bear'
+import { CANOPY, CONTACT, commitGround, paintBlob } from './groundMap'
+import { trailDistance } from './trails'
 
 const model = (n) => `/models/nature/${n}.glb`
 
@@ -28,11 +31,28 @@ const TYPES = [
   { file: 'Rock_Moss_2', kind: 'rockMoss', target: 0.9 },
   { file: 'WoodLog', kind: 'log', target: 1.4 },
   { file: 'TreeStump', kind: 'stump', target: 1.2 },
+  { file: 'Rock_1', kind: 'pebble', target: 0.5 },
+  { file: 'Rock_2', kind: 'pebble', target: 0.4 },
+  { file: 'Rock_Moss_2', kind: 'pebble', target: 0.45 },
 ]
 
 const URLS = TYPES.map((t) => model(t.file))
 
-const KINDS = ['pine', 'pineSnow', 'aspen', 'willow', 'bush', 'berries', 'rock', 'rockMoss', 'log', 'stump']
+const KINDS = ['pine', 'pineSnow', 'aspen', 'willow', 'bush', 'berries', 'rock', 'rockMoss', 'log', 'stump', 'pebble']
+
+const FOOTPRINT = {
+  pine: { contact: 1.7, canopy: 4.6, dark: 0.75 },
+  pineSnow: { contact: 1.6, canopy: 4.2, dark: 0.7 },
+  aspen: { contact: 1.2, canopy: 3.2, dark: 0.45 },
+  willow: { contact: 1.5, canopy: 3.2, dark: 0.5 },
+  bush: { contact: 1.1, canopy: 0, dark: 0.55 },
+  berries: { contact: 1.1, canopy: 0, dark: 0.55 },
+  rock: { contact: 1.3, canopy: 0, dark: 0.6 },
+  rockMoss: { contact: 1.2, canopy: 0, dark: 0.6 },
+  log: { contact: 1.6, canopy: 0, dark: 0.55 },
+  stump: { contact: 1, canopy: 0, dark: 0.55 },
+  pebble: { contact: 0.5, canopy: 0, dark: 0.45 },
+}
 
 function mulberry32(seed) {
   return function () {
@@ -53,13 +73,16 @@ export default function Forest({
   berries = 30,
   rocks = 200,
   mossRocks = 90,
+  logs = 22,
+  stumps = 16,
+  pebbles = 160,
 }) {
   const gltfs = useGLTF(URLS)
 
-  const meshes = useMemo(() => {
+  const { group, footprints } = useMemo(() => {
     const rand = mulberry32(1849)
     const caps = KINDS.reduce((acc, k) => {
-      acc[k] = { pine: pines, pineSnow: snowPines, aspen: aspens, willow: willows, bush: bushes, berries, rock: rocks, rockMoss: mossRocks, log: 3, stump: 2 }[k]
+      acc[k] = { pine: pines, pineSnow: snowPines, aspen: aspens, willow: willows, bush: bushes, berries, rock: rocks, rockMoss: mossRocks, log: logs + 2, stump: stumps + 1, pebble: pebbles }[k]
       return acc
     }, {})
     const placed = KINDS.reduce((acc, k) => {
@@ -81,10 +104,17 @@ export default function Forest({
       const x = (rand() - 0.5) * 400
       const z = (rand() - 0.5) * 400
       const h = terrainHeight(x, z)
-      if (h < 1.4 || h > 24) continue
+      if (h > 24) continue
       if (Math.hypot(x - CAMP.x, z - CAMP.z) < 17) continue
       if (Math.hypot(x - BEAR.x, z - BEAR.z) < 5) continue
+      if (h > -0.35 && h < 1.2 && placed.pebble.length < caps.pebble && rand() < 0.6) {
+        if (trailDistance(x, z) < 1) continue
+        pick('pebble', x, h - 0.08, z, 0.6 + rand() * 1.1)
+        continue
+      }
+      if (h < 1.4) continue
       if (lakeBowl(x, z) > 0.05) continue
+      if (trailDistance(x, z) < 2.2) continue
 
       const meadow = meadowMask(x, z)
       const clump = (rand() + rand() + rand()) / 3
@@ -103,6 +133,16 @@ export default function Forest({
           pick('berries', x, h, z, 1)
         }
         continue
+      }
+      if (meadow < 0.58 && h < 12 && rand() < 0.04) {
+        if (placed.log.length < caps.log && rand() < 0.6) {
+          pick('log', x, h, z, 0.8 + rand() * 0.5)
+          continue
+        }
+        if (placed.stump.length < caps.stump) {
+          pick('stump', x, h, z, 0.8 + rand() * 0.4)
+          continue
+        }
       }
       if (meadow < 0.58 && clump > 0.28 && placed.pine.length < caps.pine) {
         pick('pine', x, h, z, 1)
@@ -123,16 +163,18 @@ export default function Forest({
       }
     }
 
-    placed.log.push({ type: TYPES[17], x: CAMP.x - 12, y: terrainHeight(CAMP.x - 12, CAMP.z + 3), z: CAMP.z + 3, scale: 1, rot: 0.7 })
-    placed.log.push({ type: TYPES[17], x: CAMP.x + 14, y: terrainHeight(CAMP.x + 14, CAMP.z - 8), z: CAMP.z - 8, scale: 0.9, rot: 2.4 })
-    placed.stump.push({ type: TYPES[18], x: CAMP.x + 8, y: terrainHeight(CAMP.x + 8, CAMP.z - 12), z: CAMP.z - 12, scale: 1, rot: 1.2 })
+    const woodLog = TYPES.find((t) => t.file === 'WoodLog')
+    const treeStump = TYPES.find((t) => t.file === 'TreeStump')
+    placed.log.push({ type: woodLog, x: CAMP.x - 12, y: terrainHeight(CAMP.x - 12, CAMP.z + 3), z: CAMP.z + 3, scale: 1, rot: 0.7 })
+    placed.log.push({ type: woodLog, x: CAMP.x + 14, y: terrainHeight(CAMP.x + 14, CAMP.z - 8), z: CAMP.z - 8, scale: 0.9, rot: 2.4 })
+    placed.stump.push({ type: treeStump, x: CAMP.x + 8, y: terrainHeight(CAMP.x + 8, CAMP.z - 12), z: CAMP.z - 12, scale: 1, rot: 1.2 })
 
-    const material = new THREE.MeshStandardMaterial({
+    const material = withAtmosphere(new THREE.MeshStandardMaterial({
       vertexColors: true,
       roughness: 0.95,
       metalness: 0,
       flatShading: true,
-    })
+    }), 'forest')
 
     const m = new THREE.Matrix4()
     const q = new THREE.Quaternion()
@@ -151,6 +193,8 @@ export default function Forest({
       const height = geo.boundingBox.max.y - geo.boundingBox.min.y
       const min = geo.boundingBox.min.y
       const mesh = new THREE.InstancedMesh(geo, material, instances.length)
+      mesh.castShadow = true
+      mesh.receiveShadow = true
       instances.forEach((inst, i) => {
         const scale = (t.target / height) * inst.scale
         q.setFromAxisAngle(up, inst.rot)
@@ -167,8 +211,22 @@ export default function Forest({
       group.add(mesh)
     })
 
-    return group
-  }, [gltfs, pines, snowPines, aspens, willows, bushes, berries, rocks, mossRocks])
+    const footprints = KINDS.flatMap((kind) =>
+      placed[kind].map((p) => ({ kind, x: p.x, z: p.z, size: (p.type.target / 1.4) * p.scale }))
+    )
 
-  return <primitive object={meshes} />
+    return { group, footprints }
+  }, [gltfs, pines, snowPines, aspens, willows, bushes, berries, rocks, mossRocks, logs, stumps, pebbles])
+
+  useEffect(() => {
+    footprints.forEach(({ kind, x, z, size }) => {
+      const f = FOOTPRINT[kind]
+      const scale = kind === 'pine' || kind === 'pineSnow' || kind === 'aspen' || kind === 'willow' ? 1 : size
+      paintBlob(CONTACT, x, z, f.contact * scale, f.dark, 1.4)
+      if (f.canopy) paintBlob(CANOPY, x, z, f.canopy, 0.9, 0.7)
+    })
+    commitGround()
+  }, [footprints])
+
+  return <primitive object={group} />
 }

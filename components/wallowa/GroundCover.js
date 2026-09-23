@@ -3,8 +3,10 @@
 import { useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
+import { withAtmosphere } from './atmosphere'
 import { terrainHeight, meadowMask } from './Terrain'
 import { CAMP } from './Bear'
+import { trailDistance } from './trails'
 
 const model = (n) => `/models/nature/${n}.glb`
 
@@ -58,6 +60,7 @@ export default function GroundCover({
       const forestPatch = meadow <= 0.6 && rand() < 0.3
       if (!inMeadow && !nearCamp && !forestPatch) continue
       if (Math.hypot(x - CAMP.x, z - CAMP.z) < 8) continue
+      if (trailDistance(x, z) < 1.1) continue
 
       const r = rand()
       if (placed[2].length < counts[2] && r < 0.14 && meadow > 0.64) {
@@ -69,12 +72,12 @@ export default function GroundCover({
       }
     }
 
-    const material = new THREE.MeshStandardMaterial({
+    const material = withAtmosphere(new THREE.MeshStandardMaterial({
       vertexColors: true,
       roughness: 1,
       metalness: 0,
       flatShading: true,
-    })
+    }), 'groundcover')
 
     const m = new THREE.Matrix4()
     const q = new THREE.Quaternion()
@@ -93,6 +96,8 @@ export default function GroundCover({
       const height = geo.boundingBox.max.y - geo.boundingBox.min.y
       const min = geo.boundingBox.min.y
       const mesh = new THREE.InstancedMesh(geo, material, instances.length)
+      mesh.castShadow = false
+      mesh.receiveShadow = true
       instances.forEach((inst, i) => {
         const scale = (t.target / height) * inst.scale * (0.85 + rand() * 0.4)
         q.setFromAxisAngle(up, inst.rot)

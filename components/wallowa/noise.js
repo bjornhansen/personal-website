@@ -80,3 +80,21 @@ export function ridged(x, y, octaves = 5, lacunarity = 2, gain = 0.5) {
   }
   return sum / norm
 }
+
+export function ridgedMulti(x, y, octaves = 6, lacunarity = 2, gain = 0.5) {
+  let amp = 0.5
+  let freq = 1
+  let sum = 0
+  let norm = 0
+  let weight = 1
+  for (let i = 0; i < octaves; i++) {
+    let n = 1 - Math.abs(noise2D(x * freq, y * freq))
+    n *= n * weight
+    weight = Math.min(1, Math.max(0, n * 2))
+    sum += amp * n
+    norm += amp
+    amp *= gain
+    freq *= lacunarity
+  }
+  return sum / norm
+}

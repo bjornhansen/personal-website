@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { useSceneStore } from './store'
 
 function noiseBuffer(ctx, seconds = 2) {
   const buf = ctx.createBuffer(1, ctx.sampleRate * seconds, ctx.sampleRate)
@@ -87,8 +88,41 @@ export default function AmbientAudio() {
     }
     scheduleCrackle()
 
+    const plop = (strength) => {
+      const t = ctx.currentTime
+      const osc = ctx.createOscillator()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(700 + Math.random() * 300, t)
+      osc.frequency.exponentialRampToValueAtTime(180, t + 0.14)
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(0.0001, t)
+      g.gain.exponentialRampToValueAtTime(0.12 * strength, t + 0.01)
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22)
+      osc.connect(g)
+      g.connect(master)
+      osc.start(t)
+      osc.stop(t + 0.25)
+
+      const splash = ctx.createBufferSource()
+      splash.buffer = wind.buffer
+      const hp = ctx.createBiquadFilter()
+      hp.type = 'highpass'
+      hp.frequency.value = 1800
+      const sg = ctx.createGain()
+      sg.gain.setValueAtTime(0.25 * strength, t)
+      sg.gain.exponentialRampToValueAtTime(0.0001, t + 0.35)
+      splash.connect(hp)
+      hp.connect(sg)
+      sg.connect(master)
+      splash.start(t, Math.random() * 2, 0.4)
+    }
+    const unsubscribe = useSceneStore.subscribe((state, prev) => {
+      if (state.splash && state.splash !== prev.splash) plop(Math.min(1.2, state.splash.strength))
+    })
+
     nodesRef.current = { wind, swell }
     return () => {
+      unsubscribe()
       stop = true
       try {
         wind.stop()

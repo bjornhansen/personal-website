@@ -6,16 +6,16 @@ import { useSceneStore } from './store'
 import { terrainHeight } from './Terrain'
 import { BEAR } from './Bear'
 
-function line(hour, name = 'traveler') {
-  if (hour >= 20 || hour < 5)
-    return `Evening, ${name}. Fire's warm. Mind the dark.`
+function line(hour, sunAltitude, name = 'traveler') {
+  if (sunAltitude < -6) return `Evening, ${name}. Fire's warm. Mind the dark.`
   if (hour < 12) return `Morning, ${name}. Coffee's on the fire.`
-  if (hour < 17) return `Afternoon, ${name}. The lake's quiet today.`
-  return `Evening, ${name}. Sun's going down behind the horns.`
+  if (sunAltitude > 12) return `Afternoon, ${name}. The lake's quiet today.`
+  return `Evening, ${name}. Watch the peaks catch the last light.`
 }
 
 export default function Greeting() {
   const timeOfDay = useSceneStore((s) => s.timeOfDay)
+  const sunAltitude = useSceneStore((s) => s.sunAltitude)
   const bearArrived = useSceneStore((s) => s.bearArrived)
   const [expired, setExpired] = useState(false)
 
@@ -40,7 +40,7 @@ export default function Greeting() {
         }`}
       >
         <div className='rounded-2xl border border-white/10 bg-[#141410]/90 px-4 py-3 font-serif text-[15px] leading-snug text-[#FBFAF6] shadow-lg'>
-          {timeOfDay !== null && line(timeOfDay)}
+          {timeOfDay !== null && line(timeOfDay, sunAltitude)}
         </div>
         <div className='mx-auto h-3 w-3 -rotate-45 border-b border-r border-white/10 bg-[#141410]/90' />
       </div>

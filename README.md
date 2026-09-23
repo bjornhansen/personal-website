@@ -17,8 +17,8 @@ Code for Bjorn Hansen's personal website built with Next.js. Feel free to use or
 A full-page 3D experience: an explorable campsite on the shore of an alpine
 lake in the Wallowa Mountains, guided by a quiet black bear named **Bear**.
 Stack: `three` + `@react-three/fiber` + `@react-three/drei` + `zustand`.
-Everything is procedural (terrain, lake, sky, day/night from the visitor's
-local clock) except vegetation models from the CC0 Quaternius Ultimate Nature
+Everything is procedural (terrain, lake, sky, day/night from the real sun
+and moon position at the visitor's location and clock) except vegetation models from the CC0 Quaternius Ultimate Nature
 Pack (`public/models/nature/`, converted via `scripts/convert-nature-pack.mjs`).
 
 Behavior conventions:
@@ -32,6 +32,31 @@ Behavior conventions:
   `public/models/bear.glb` and it replaces the procedural bear automatically
   (plays Walk on the way in, Idle on arrival).
 - Respects `prefers-reduced-motion`; mobile gets reduced counts and DPR clamp.
+
+Sky, light, and water:
+- `sun.js` computes sun/moon position and moon phase; the scene treats -z as
+  south (camera looks up-lake at the peaks), +x as west.
+- Visitor location: `?lat&lng` override → device geolocation (only if already
+  granted; never prompts) → Vercel IP geolocation via `/api/geo` → a
+  timezone-based guess.
+- `palette.js` keyframes every sky/light/fog/water color by sun altitude;
+  `DayNight.js` (`Atmosphere`) samples it and writes the shared uniforms in
+  `atmosphere.js`. Sky dome, fog, lake, and mist all read those, so the
+  horizon and the fog always match. Materials opt into the directional fog
+  with `withAtmosphere(material, key)`.
+- Tone mapping is `NeutralToneMapping`; custom shaders must end with
+  `tonemapping_fragment` + `colorspace_fragment` (or `toDisplay()`) so they
+  match fog, which three applies after tone mapping.
+- Shadows render on demand (`shadowMap.autoUpdate = false`): when the light
+  moves, the object count changes, or Bear is walking.
+- Lake is a planar `Reflector` with a baked depth texture; ripple rings come
+  from fish jumps and clicks (`uRipples`), splashes emit `splash` in the
+  store for the audio.
+- Ground detail: `groundMap.js` is a shared texture (R contact shadow,
+  G canopy/forest floor, B dirt) painted by Forest, CampProps, and the trails
+  in `trails.js`; placement code should avoid `trailDistance()`.
+- Debug params: `?t=19.5` (local hour), `?date=2026-06-21`, `?speed=600`
+  (timelapse), `?clouds=0..1`, `?lat=45.28&lng=-117.21`.
 
 ### Roadmap ideas (not yet built — do not implement without checking)
 
@@ -64,10 +89,9 @@ Goal: visitors learn about Bjorn and his work through play, not reading.
 5. **Recommended first slice**: Bear-guided tours + readable trail signs +
    one hidden-object collectible + the campfire story at night.
 
-Also on the shelf (from earlier discussion): terrain texture-splatting +
-domain-warped/erosion noise for the heightfield, vertex AO, LODs for
-vegetation, wind-sway shader for plants, and a rigged CC0 bear GLB (see
-`AGENTS.md`).
+Also on the shelf (from earlier discussion): terrain texture-splatting,
+LODs for vegetation, wind-sway shader for plants, and a rigged CC0 bear GLB
+(see `AGENTS.md`).
 
 ## Getting Started
 

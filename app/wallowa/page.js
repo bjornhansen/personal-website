@@ -75,7 +75,7 @@ export default function WallowaPage() {
         </div>
       </div>
       <p className='pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 rounded-full border border-white/10 bg-[#141410]/70 px-4 py-1.5 font-mono text-xs text-stone-300/80 backdrop-blur-sm'>
-        tap the glowing lights · esc to return to camp
+        tap the glowing lights · tap the lake to toss a stone · esc to return to camp
       </p>
     </main>
   )

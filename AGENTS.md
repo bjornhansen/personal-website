@@ -31,7 +31,11 @@ Full product context and roadmap for the 3D scene live in README.md
   - `components/wallowa/store.js` (zustand) is the experience state
     (timeOfDay, isNight, activeSection, bearArrived).
   - Placement must sample `terrainHeight`/`meadowMask`/`lakeBowl` from
-    `Terrain.js` — never hardcode ground heights.
+    `Terrain.js` — never hardcode ground heights — and skip
+    `trailDistance()` < ~1–2 units.
+  - All sky/light/fog colors come from `palette.js` via the shared uniforms
+    in `atmosphere.js`; don't hardcode time-of-day colors in components.
+    New large/distant materials should be wrapped in `withAtmosphere()`.
   - Mobile + `prefers-reduced-motion` behavior must be preserved when adding
     animations (`components/wallowa/hooks.js`).
   - No DOM overlays for content — in-world text/dialogue only (see README

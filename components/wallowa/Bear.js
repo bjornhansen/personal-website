@@ -18,6 +18,14 @@ const SPAWN_V = new THREE.Vector3(SPAWN.x, 0, SPAWN.z)
 const WALK_DIR = new THREE.Vector3().subVectors(DEST, SPAWN_V)
 const WALK_YAW = Math.atan2(WALK_DIR.x, WALK_DIR.z)
 
+function useCastShadows(group) {
+  useEffect(() => {
+    group.current?.traverse((o) => {
+      if (o.isMesh) o.castShadow = true
+    })
+  }, [group])
+}
+
 function useWalkIn() {
   const progress = useRef(0)
   const setBearArrived = useSceneStore((s) => s.setBearArrived)
@@ -55,6 +63,7 @@ function BearGLB() {
   const group = useRef()
   const camera = useThree((s) => s.camera)
   const tPos = useRef(new THREE.Vector3())
+  useCastShadows(group)
 
   const clips = useMemo(() => {
     const all = Object.values(actions)
@@ -109,6 +118,7 @@ function ProceduralBear() {
   const legBR = useRef()
   const camera = useThree((s) => s.camera)
   const legRefs = [legFL, legFR, legBL, legBR]
+  useCastShadows(group)
 
   useFrame((state) => {
     const t = state.clock.elapsedTime

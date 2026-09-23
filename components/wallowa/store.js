@@ -10,12 +10,17 @@ export const SECTIONS = {
 
 export const useSceneStore = create((set) => ({
   timeOfDay: null,
+  sunAltitude: null,
   isNight: false,
+  observer: null,
   activeSection: null,
   bearArrived: false,
-  setTimeOfDay: (t) =>
-    set({ timeOfDay: t, isNight: t !== null && (t < 6 || t >= 20) }),
+  splash: null,
+  setSky: ({ hour, sunAltitude }) =>
+    set({ timeOfDay: hour, sunAltitude, isNight: sunAltitude < -6 }),
+  setObserver: (observer) => set({ observer }),
   setBearArrived: () => set({ bearArrived: true }),
+  emitSplash: (strength) => set({ splash: { strength, id: Math.random() } }),
   openSection: (id) => set({ activeSection: id }),
   closeSection: () => set({ activeSection: null }),
 }))

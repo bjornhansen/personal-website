@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSceneStore } from './store'
@@ -8,6 +8,7 @@ import { terrainHeight } from './Terrain'
 import { CAMP } from './Bear'
 import { usePrefersReducedMotion } from './hooks'
 import { CURSOR_POINTER } from './cursor'
+import { CONTACT, commitGround, paintBlob } from './groundMap'
 
 export const SPOTS = {
   building: { x: CAMP.x - 6, z: CAMP.z - 18 },
@@ -55,7 +56,7 @@ function Marker({ id, position }) {
 function Tent({ position }) {
   return (
     <group position={position} rotation={[0, 0.4, 0]}>
-      <mesh position={[0, 0.85, 0]}>
+      <mesh position={[0, 0.85, 0]} castShadow>
         <coneGeometry args={[2.1, 1.9, 4]} />
         <meshStandardMaterial color='#b0543c' roughness={0.85} flatShading />
       </mesh>
@@ -111,11 +112,11 @@ function Campfire({ position }) {
 function TrailheadSign({ position }) {
   return (
     <group position={position} rotation={[0, -0.5, 0]}>
-      <mesh position={[0, 1.1, 0]}>
+      <mesh position={[0, 1.1, 0]} castShadow>
         <cylinderGeometry args={[0.09, 0.09, 2.2, 8]} />
         <meshStandardMaterial color='#6b5842' roughness={1} />
       </mesh>
-      <mesh position={[0, 1.9, 0]} rotation={[0, 0.12, 0]}>
+      <mesh position={[0, 1.9, 0]} rotation={[0, 0.12, 0]} castShadow>
         <boxGeometry args={[1.5, 0.55, 0.08]} />
         <meshStandardMaterial color='#8a755a' roughness={0.95} />
       </mesh>
@@ -127,10 +128,22 @@ function TrailheadSign({ position }) {
   )
 }
 
+const TENT = [CAMP.x - 6, CAMP.z - 18]
+const FIRE = [CAMP.x + 2, CAMP.z + 6]
+const SIGN = [CAMP.x + 18, CAMP.z + 14]
+
 export default function CampProps() {
-  const tent = [CAMP.x - 6, CAMP.z - 18]
-  const fire = [CAMP.x + 2, CAMP.z + 6]
-  const sign = [CAMP.x + 18, CAMP.z + 14]
+  const tent = TENT
+  const fire = FIRE
+  const sign = SIGN
+
+  useEffect(() => {
+    paintBlob(CONTACT, TENT[0], TENT[1], 2.8, 0.6, 1.2)
+    paintBlob(CONTACT, FIRE[0], FIRE[1], 1.4, 0.8, 1)
+    paintBlob(CONTACT, SIGN[0], SIGN[1], 0.7, 0.5, 1)
+    commitGround()
+  }, [])
+
   return (
     <group>
       <Tent position={[tent[0], terrainHeight(tent[0], tent[1]), tent[1]]} />
@@ -141,20 +154,6 @@ export default function CampProps() {
       {Object.entries(SPOTS).map(([id, { x, z }]) => (
         <Marker key={id} id={id} position={[x, terrainHeight(x, z) + 3, z]} />
       ))}
-      <mesh
-        position={[CAMP.x, terrainHeight(CAMP.x, CAMP.z) + 0.02, CAMP.z]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <circleGeometry args={[9, 32]} />
-        <meshStandardMaterial color='#6e5c44' roughness={1} />
-      </mesh>
-      <mesh
-        position={[CAMP.x - 12, terrainHeight(CAMP.x - 12, CAMP.z + 3) + 0.02, CAMP.z + 3]}
-        rotation={[-Math.PI / 2, 0, 0]}
-      >
-        <circleGeometry args={[3, 24]} />
-        <meshStandardMaterial color='#57452f' roughness={1} />
-      </mesh>
     </group>
   )
 }
