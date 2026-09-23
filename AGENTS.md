@@ -4,6 +4,9 @@ Personal website for Bjorn Hansen (Next.js App Router, React 19, Tailwind v4)
 plus the `/wallowa` 3D experience (three.js + React Three Fiber + zustand).
 Full product context and roadmap for the 3D scene live in README.md
 ("Wallowa Camp" section) — read that before changing the experience.
+Performance goals, investigation findings, and the optimization/benchmark
+plan live in `docs/wallowa-performance.md` — read it before performance work
+and keep its measurements and implementation status current.
 
 ## Commands
 

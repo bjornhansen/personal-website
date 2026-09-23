@@ -58,6 +58,15 @@ Sky, light, and water:
 - Debug params: `?t=19.5` (local hour), `?date=2026-06-21`, `?speed=600`
   (timelapse), `?clouds=0..1`, `?lat=45.28&lng=-117.21`.
 
+### Performance goals and plan
+
+Target a first interactive scene in under two seconds on defined reference
+devices/networks, with graceful quality scaling for older machines and phones
+and low sustained power use. See [Wallowa performance plan](docs/wallowa-performance.md)
+for the current code-based findings, benchmark protocol, proposed quality
+presets, and prioritized optimization work. Runtime measurements are still
+needed; the document distinguishes proposed changes from existing behavior.
+
 ### Roadmap ideas (not yet built — do not implement without checking)
 
 Goal: visitors learn about Bjorn and his work through play, not reading.
