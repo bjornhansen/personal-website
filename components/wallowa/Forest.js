@@ -8,6 +8,7 @@ import { terrainHeight, meadowMask, lakeBowl } from './Terrain'
 import { CAMP, BEAR } from './Bear'
 import { CANOPY, CONTACT, commitGround, paintBlob } from './groundMap'
 import { trailDistance } from './trails'
+import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
 
 const model = (n) => `/models/nature/${n}.glb`
 
@@ -79,7 +80,7 @@ export default function Forest({
 }) {
   const gltfs = useGLTF(URLS)
 
-  const { group, footprints } = useMemo(() => {
+  const { group, footprints } = useMemo(() => measureGeneration('forest-generation', () => {
     const rand = mulberry32(1849)
     const caps = KINDS.reduce((acc, k) => {
       acc[k] = { pine: pines, pineSnow: snowPines, aspen: aspens, willow: willows, bush: bushes, berries, rock: rocks, rockMoss: mossRocks, log: logs + 2, stump: stumps + 1, pebble: pebbles }[k]
@@ -208,6 +209,11 @@ export default function Forest({
       })
       mesh.instanceMatrix.needsUpdate = true
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+      if (benchmark) {
+        mesh.computeBoundingSphere()
+        mesh.userData.benchmarkPopulation = instances.length
+        mesh.count = Math.floor(instances.length * benchmark.forest)
+      }
       group.add(mesh)
     })
 
@@ -216,7 +222,7 @@ export default function Forest({
     )
 
     return { group, footprints }
-  }, [gltfs, pines, snowPines, aspens, willows, bushes, berries, rocks, mossRocks, logs, stumps, pebbles])
+  }), [gltfs, pines, snowPines, aspens, willows, bushes, berries, rocks, mossRocks, logs, stumps, pebbles])
 
   useEffect(() => {
     footprints.forEach(({ kind, x, z, size }) => {
@@ -226,6 +232,7 @@ export default function Forest({
       if (f.canopy) paintBlob(CANOPY, x, z, f.canopy, 0.9, 0.7)
     })
     commitGround()
+    markBenchmark('forest-ready', { placed: footprints.length })
   }, [footprints])
 
   return <primitive object={group} />

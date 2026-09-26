@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { withAtmosphere } from './atmosphere'
 import { terrainHeight, meadowMask } from './Terrain'
 import { CAMP } from './Bear'
 import { trailDistance } from './trails'
+import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
 
 const model = (n) => `/models/nature/${n}.glb`
 
@@ -35,7 +36,7 @@ export default function GroundCover({
 }) {
   const gltfs = useGLTF(URLS)
 
-  const meshes = useMemo(() => {
+  const meshes = useMemo(() => measureGeneration('ground-cover-generation', () => {
     const rand = mulberry32(7719)
     const counts = [grass, shortGrass, flowers]
     const placed = TYPES.map(() => [])
@@ -110,11 +111,20 @@ export default function GroundCover({
       })
       mesh.instanceMatrix.needsUpdate = true
       if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+      if (benchmark) {
+        mesh.computeBoundingSphere()
+        mesh.userData.benchmarkPopulation = instances.length
+        mesh.count = Math.floor(instances.length * benchmark.groundCover)
+      }
       group.add(mesh)
     })
 
     return group
-  }, [gltfs, grass, shortGrass, flowers])
+  }), [gltfs, grass, shortGrass, flowers])
+
+  useEffect(() => {
+    markBenchmark('ground-cover-ready')
+  }, [meshes])
 
   return <primitive object={meshes} />
 }

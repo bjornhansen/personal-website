@@ -17,6 +17,11 @@ and keep its measurements and implementation status current.
   runs with strict react-hooks purity/immutability checks — do not call
   `Math.random()` during render, and never mutate hook results directly;
   mutate via refs inside `useFrame`/effects)
+- `npm run bench:wallowa` / `bench:wallowa:report` — Wallowa benchmark runner
+  and paired-delta report (needs `npm run start`); see
+  `docs/wallowa-performance.md` → "Running the benchmark harness"
+- `npm run test:wallowa-benchmark` (unit) and `test:wallowa-benchmark:smoke`
+  (visible Chromium against `npm run start -- --port 3100`)
 
 ## Conventions
 
@@ -41,6 +46,13 @@ and keep its measurements and implementation status current.
     New large/distant materials should be wrapped in `withAtmosphere()`.
   - Mobile + `prefers-reduced-motion` behavior must be preserved when adding
     animations (`components/wallowa/hooks.js`).
+  - Rendering is capped near 60 FPS on whole display refreshes
+    (`frameCap.js`, driven by `CappedFrameloop` in `Scene.js` with
+    `frameloop='never'`). Don't switch the Canvas back to `'always'`; animate
+    from `delta`/elapsed time so frame skipping stays correct.
+  - Terrain detail noise that depends only on ground position is baked once on
+    the GPU (`terrainDetail.js`). Add new position-only terrain noise to the
+    bake rather than evaluating it per pixel in the terrain shader.
   - No DOM overlays for content — in-world text/dialogue only (see README
     roadmap). HUD is limited to nav, local time, sound toggle, and one
     instruction line.

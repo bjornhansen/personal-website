@@ -5,8 +5,20 @@ import { useEffect } from 'react'
 import { SECTIONS, useSceneStore } from '@/components/wallowa/store'
 import AmbientAudio from '@/components/wallowa/AmbientAudio'
 import { CURSOR_DEFAULT } from '@/components/wallowa/cursor'
+import { benchmark, markBenchmark } from '@/components/wallowa/benchmark/config'
 
-const Scene = dynamic(() => import('@/components/wallowa/Scene'), {
+const Scene = dynamic(async () => {
+  markBenchmark('scene-import-start')
+  const [{ default: CampScene }, runtime] = await Promise.all([
+    import('@/components/wallowa/Scene'),
+    benchmark ? import('@/components/wallowa/benchmark/Benchmark') : Promise.resolve(null),
+  ])
+  markBenchmark('scene-import-ready')
+  return function PreparedScene() {
+    const Panel = runtime?.BenchmarkPanel
+    return <><CampScene Benchmark={runtime?.default} />{Panel && <Panel />}</>
+  }
+}, {
   ssr: false,
   loading: () => (
     <div className='fixed inset-0 flex items-center justify-center bg-[#0a1220] text-stone-300'>
@@ -34,6 +46,7 @@ function NavHints() {
       {Object.entries(SECTIONS).map(([id, data]) => (
         <button
           key={id}
+          data-wallowa-section={id}
           onClick={() => openSection(id)}
           className={`font-mono text-[11px] transition-colors ${
             activeSection === id

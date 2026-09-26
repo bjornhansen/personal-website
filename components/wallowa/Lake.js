@@ -9,6 +9,8 @@ import { NOISE_GLSL } from './glsl'
 import { terrainHeight } from './Terrain'
 import { useSceneStore } from './store'
 import { usePrefersReducedMotion } from './hooks'
+import { benchmark, benchmarkState, createRandom, measureGeneration } from './benchmark/config'
+import { createReflectionSchedule } from './reflectionSchedule'
 
 const CENTER = { x: -10, z: 45 }
 const WIDTH = 190
@@ -143,8 +145,9 @@ function depthAt(depth, x, z) {
 function useReflector(depth, resolutionScale, multisample) {
   const size = useThree((s) => s.size)
   const dpr = useThree((s) => s.viewport.dpr)
-  const width = Math.round(size.width * dpr * resolutionScale)
-  const height = Math.round(size.height * dpr * resolutionScale)
+  const width = Math.round(benchmark?.reflectionWidth ?? size.width * dpr * (benchmark?.reflectionScale ?? resolutionScale))
+  const height = Math.round(benchmark?.reflectionHeight ?? size.height * dpr * (benchmark?.reflectionScale ?? resolutionScale))
+  const samples = Math.floor(benchmark?.reflectionSamples ?? multisample)
 
   const reflector = useMemo(() => {
     const geometry = new THREE.PlaneGeometry(WIDTH, LENGTH, 1, 1)
@@ -152,7 +155,7 @@ function useReflector(depth, resolutionScale, multisample) {
       textureWidth: width,
       textureHeight: height,
       clipBias: 0.002,
-      multisample,
+      multisample: samples,
       shader: {
         name: 'LakeShader',
         uniforms: {
@@ -178,13 +181,39 @@ function useReflector(depth, resolutionScale, multisample) {
     r.position.set(CENTER.x, 0, CENTER.z)
     r.renderOrder = 1
     return r
-  }, [depth, width, height, multisample])
+  }, [depth, width, height, samples])
+
+  useEffect(() => {
+    if (!benchmark) return
+    benchmarkState.reflectionSize = { width, height, samples }
+  }, [width, height, samples])
 
   useEffect(() => () => reflector.dispose(), [reflector])
   return reflector
 }
 
-function Splashes({ splashes }) {
+function useReflectionSchedule(lakeRef, reflector) {
+  useEffect(() => {
+    const target = lakeRef.current
+    if (!target) return
+    const renderReflection = target.onBeforeRender
+    const fixedRate = benchmark?.reflectionFps
+    const schedule = createReflectionSchedule(fixedRate ? { maxAgeMs: 1000 / fixedRate - 0.5, move: Infinity, turn: Infinity } : undefined)
+    let capturedReady = false
+    target.onBeforeRender = function (renderer, scene, camera, ...rest) {
+      if (benchmark?.reflection === 'frozen' && benchmarkState.sampleStarted && capturedReady) return
+      const force = benchmark?.reflection === 'every' || !useSceneStore.getState().bearArrived
+      if (!schedule.due(performance.now(), camera, force)) return
+      renderReflection.call(this, renderer, scene, camera, ...rest)
+      if (benchmark) {
+        capturedReady = Boolean(benchmarkState.marks['forest-ready'] && benchmarkState.marks['ground-cover-ready'] && benchmarkState.marks['bear-arrived'])
+      }
+    }
+    return () => { target.onBeforeRender = renderReflection }
+  }, [lakeRef, reflector])
+}
+
+function Splashes({ splashes, time }) {
   const mesh = useRef()
   const dummy = useMemo(() => new THREE.Object3D(), [])
 
@@ -193,12 +222,20 @@ function Splashes({ splashes }) {
     let n = 0
     splashes.current.forEach((s) => {
       if (s.life <= 0) return
-      s.life -= delta
+      if (!benchmark) s.life -= delta
+      else s.life = 1.2 - (time.current - s.born)
       s.drops.forEach((d) => {
-        d.vy -= 9.8 * delta
-        d.x += d.vx * delta
-        d.y += d.vy * delta
-        d.z += d.vz * delta
+        if (benchmark) {
+          const age = time.current - s.born
+          d.x = d.startX + d.vx * age
+          d.y = 0.02 + d.startVy * age - 4.9 * age * age
+          d.z = d.startZ + d.vz * age
+        } else {
+          d.vy -= 9.8 * delta
+          d.x += d.vx * delta
+          d.y += d.vy * delta
+          d.z += d.vz * delta
+        }
         if (d.y < 0 || s.life <= 0) return
         dummy.position.set(d.x, d.y, d.z)
         dummy.scale.setScalar(d.size)
@@ -247,16 +284,24 @@ function Fish({ fish }) {
 export default function Lake({ quality = 'high' }) {
   const reducedMotion = usePrefersReducedMotion()
   const emitSplash = useSceneStore((s) => s.emitSplash)
-  const depth = useMemo(() => bakeDepth(), [])
+  const depth = useMemo(() => measureGeneration('lake-depth-generation', bakeDepth), [])
   const reflector = useReflector(depth, quality === 'high' ? 0.5 : 0.35, quality === 'high' ? 4 : 0)
 
   const lake = useRef()
+  useReflectionSchedule(lake, reflector)
   const time = useRef(0)
   const nextRipple = useRef(0)
   const nextJump = useRef(-1)
   const splashes = useRef(Array.from({ length: SPLASHES }, () => ({ life: 0, drops: [] })))
   const nextSplash = useRef(0)
   const fish = useRef({ active: false, x: 0, y: 0, z: 0, vy: 0, speed: 0, heading: 0, landed: false })
+  const random = useRef(null)
+  const sampling = useRef(false)
+  const simulationStep = useRef(0)
+
+  useEffect(() => {
+    random.current = benchmark ? createRandom(benchmark.seed ^ 0x51a5) : Math.random
+  }, [])
 
   const addRipple = (x, z, strength, delay = 0) => {
     if (!lake.current) return
@@ -269,17 +314,23 @@ export default function Lake({ quality = 'high' }) {
     const s = splashes.current[nextSplash.current]
     nextSplash.current = (nextSplash.current + 1) % SPLASHES
     s.life = 1.2
+    s.born = time.current
     s.drops = Array.from({ length: DROPS }, () => {
-      const a = Math.random() * Math.PI * 2
-      const out = (0.4 + Math.random() * 0.9) * strength
+      const rand = random.current ?? Math.random
+      const a = rand() * Math.PI * 2
+      const out = (0.4 + rand() * 0.9) * strength
+      const vy = (1.8 + rand() * 2.2) * strength
       return {
         x,
+        startX: x,
+        startZ: z,
+        startVy: vy,
         y: 0.02,
         z,
         vx: Math.cos(a) * out,
         vz: Math.sin(a) * out,
-        vy: (1.8 + Math.random() * 2.2) * strength,
-        size: 0.03 + Math.random() * 0.04,
+        vy,
+        size: 0.03 + rand() * 0.04,
       }
     })
   }
@@ -291,7 +342,8 @@ export default function Lake({ quality = 'high' }) {
     emitSplash(strength)
   }
 
-  useFrame((_, delta) => {
+  const step = (delta) => {
+    const rand = random.current ?? Math.random
     time.current += delta
     if (lake.current) lake.current.material.uniforms.uTime.value = reducedMotion ? 0 : time.current
 
@@ -307,26 +359,52 @@ export default function Lake({ quality = 'high' }) {
       }
     }
 
-    if (nextJump.current < 0) nextJump.current = time.current + 5 + Math.random() * 8
+    if (nextJump.current < 0) nextJump.current = time.current + 5 + rand() * 8
     if (reducedMotion || time.current < nextJump.current) return
-    nextJump.current = time.current + 14 + Math.random() * 30
+    nextJump.current = time.current + 14 + rand() * 30
     for (let tries = 0; tries < 20; tries++) {
-      const x = CENTER.x + (Math.random() - 0.5) * WIDTH * 0.8
-      const z = CENTER.z + (Math.random() - 0.5) * LENGTH * 0.8
+      const x = CENTER.x + (rand() - 0.5) * WIDTH * 0.8
+      const z = CENTER.z + (rand() - 0.5) * LENGTH * 0.8
       if (depthAt(depth, x, z) < 1.5) continue
       Object.assign(f, {
         active: true,
         x,
         y: 0,
         z,
-        vy: 3.2 + Math.random() * 1.2,
-        speed: 1.2 + Math.random() * 0.8,
-        heading: Math.random() * Math.PI * 2,
+        vy: 3.2 + rand() * 1.2,
+        speed: 1.2 + rand() * 0.8,
+        heading: rand() * Math.PI * 2,
       })
+      if (benchmark) benchmarkState.events.push({ type: 'fish-jump', phase: benchmarkState.phase, time: time.current, x, z, vy: f.vy, speed: f.speed, heading: f.heading })
       addRipple(x, z, 0.6)
       addSplash(x, z, 0.5)
       break
     }
+  }
+
+  useFrame((_, delta) => {
+    if (!benchmark) {
+      step(delta)
+      return
+    }
+    if (benchmarkState.sampleStarted && !sampling.current) {
+      sampling.current = true
+      simulationStep.current = 0
+      time.current = 0
+      nextJump.current = -1
+      nextRipple.current = 0
+      nextSplash.current = 0
+      fish.current.active = false
+      splashes.current.forEach((s) => { s.life = 0 })
+      random.current = createRandom(benchmark.seed ^ 0x51a5)
+      lake.current?.material.uniforms.uRipples.value.forEach((r) => r.set(0, 0, -100, 0))
+    }
+    const target = Math.floor(benchmarkState.animationTime * 60)
+    while (simulationStep.current < target) {
+      step(1 / 60)
+      simulationStep.current++
+    }
+    if (lake.current) lake.current.material.uniforms.uTime.value = reducedMotion ? 0 : benchmarkState.animationTime
   })
 
   return (
@@ -340,7 +418,7 @@ export default function Lake({ quality = 'high' }) {
           disturb(e.point.x, e.point.z, 1.3)
         }}
       />
-      <Splashes splashes={splashes} />
+      <Splashes splashes={splashes} time={time} />
       <Fish fish={fish} />
     </>
   )

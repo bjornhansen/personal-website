@@ -9,6 +9,7 @@ import { celestialBasis, celestialState } from './sun'
 import { createPalette, samplePalette } from './palette'
 import { locationFromTimezone, readSkyParams, startDate } from './location'
 import { usePrefersReducedMotion } from './hooks'
+import { benchmark, benchmarkState } from './benchmark/config'
 
 const LIGHT_DISTANCE = 450
 const SHADOW_EXTENT = 250
@@ -67,7 +68,10 @@ export default function Atmosphere({ shadowMapSize = 4096 }) {
     const s = state.current
     if (!c || !sunLight.current || !hemi.current) return
 
-    if (!reducedMotion) ATMOSPHERE.uSkyTime.value += delta
+    if (!reducedMotion) {
+      if (benchmark) ATMOSPHERE.uSkyTime.value = benchmarkState.animationTime
+      else ATMOSPHERE.uSkyTime.value += delta
+    }
 
     s.sinceCount += delta
     if (s.sinceCount > 1) {

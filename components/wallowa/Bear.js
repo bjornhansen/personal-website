@@ -7,6 +7,7 @@ import * as THREE from 'three'
 import { useSceneStore } from './store'
 import { terrainHeight } from './Terrain'
 import { usePrefersReducedMotion } from './hooks'
+import { benchmark, benchmarkState, markBenchmark } from './benchmark/config'
 
 export const CAMP = { x: 56, z: 88 }
 export const BEAR = { x: 62, z: 95 }
@@ -30,10 +31,14 @@ function useWalkIn() {
   const progress = useRef(0)
   const setBearArrived = useSceneStore((s) => s.setBearArrived)
   const reducedMotion = usePrefersReducedMotion()
-  const arrived = useRef(reducedMotion)
+  const arrived = useRef(false)
 
   const pos = useRef(new THREE.Vector3().copy(SPAWN_V))
   const walking = useRef(!reducedMotion)
+
+  useEffect(() => {
+    markBenchmark('bear-ready')
+  }, [])
 
   useFrame((_, delta) => {
     if (arrived.current) {
@@ -121,7 +126,7 @@ function ProceduralBear() {
   useCastShadows(group)
 
   useFrame((state) => {
-    const t = state.clock.elapsedTime
+    const t = benchmark ? benchmarkState.animationTime : state.clock.elapsedTime
     if (!group.current) return
     group.current.position.copy(pos.current)
 

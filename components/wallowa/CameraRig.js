@@ -7,6 +7,7 @@ import { useSceneStore } from './store'
 import { terrainHeight } from './Terrain'
 import { SPOTS } from './CampProps'
 import { usePrefersReducedMotion } from './hooks'
+import { benchmark, benchmarkState } from './benchmark/config'
 
 const OVERVIEW_POS = new THREE.Vector3(0, 28, 185)
 const OVERVIEW_TARGET = new THREE.Vector3(0, 0, 20)
@@ -38,6 +39,7 @@ export default function CameraRig() {
   const reducedMotion = usePrefersReducedMotion()
   const posGoal = useRef(OVERVIEW_POS.clone())
   const targetGoal = useRef(OVERVIEW_TARGET.clone())
+  const sampleReset = useRef(false)
 
   useEffect(() => {
     const view = activeSection ? viewpointFor(activeSection) : { pos: OVERVIEW_POS, target: OVERVIEW_TARGET }
@@ -46,12 +48,23 @@ export default function CameraRig() {
   }, [activeSection])
 
   useFrame((state, delta) => {
-    const t = state.clock.elapsedTime
+    const t = benchmark ? benchmarkState.animationTime : state.clock.elapsedTime
     const speed = reducedMotion ? 1 : Math.min(1, delta * 2.4)
+
+    if (benchmark) {
+      const section = useSceneStore.getState().activeSection
+      const view = section ? viewpointFor(section) : { pos: OVERVIEW_POS, target: OVERVIEW_TARGET }
+      posGoal.current.copy(view.pos)
+      targetGoal.current.copy(view.target)
+      if (benchmarkState.sampleStarted && !sampleReset.current) {
+        sampleReset.current = true
+        camera.position.copy(view.pos)
+      }
+    }
 
     const desired = posGoal.current.clone()
     const look = targetGoal.current.clone()
-    if (!reducedMotion) {
+    if (!reducedMotion && benchmark?.camera !== 'fixed') {
       const driftX = Math.sin(t * 0.12) * 2.2
       const driftY = Math.sin(t * 0.08) * 0.6
       desired.x += driftX
@@ -60,8 +73,12 @@ export default function CameraRig() {
       look.y += driftY * 0.05
     }
 
-    camera.position.lerp(desired, speed)
+    const before = benchmarkState.inputPending ? camera.position.clone() : null
+    camera.position.lerp(desired, benchmark?.camera === 'fixed' ? 1 : speed)
     camera.lookAt(look)
+    if (benchmarkState.inputPending && before && camera.position.distanceToSquared(before) > 1e-10) {
+      benchmarkState.inputPending.applied = true
+    }
   })
 
   return null

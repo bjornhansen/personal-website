@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import * as THREE from 'three'
 import { ATMOSPHERE, ATMOSPHERE_GLSL } from './atmosphere'
 import { NOISE3_GLSL, NOISE_GLSL } from './glsl'
+import { benchmark } from './benchmark/config'
 
 const RADIUS = 4000
 
@@ -148,12 +149,23 @@ const frag = /* glsl */ `
   }
 `
 
+const simpleFrag = `
+  varying vec3 vWorldPos;
+  ${ATMOSPHERE_GLSL}
+  void main() {
+    vec3 dir = normalize(vWorldPos - cameraPosition);
+    gl_FragColor = vec4(skyGradient(dir), 1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+  }
+`
+
 export default function Sky() {
   const material = useMemo(
     () =>
       new THREE.ShaderMaterial({
         vertexShader: vert,
-        fragmentShader: frag,
+        fragmentShader: benchmark?.sky === 'simple' ? simpleFrag : frag,
         uniforms: ATMOSPHERE,
         side: THREE.BackSide,
         depthWrite: false,

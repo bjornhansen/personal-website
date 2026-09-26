@@ -138,7 +138,10 @@ export default function AmbientAudio() {
 
   return (
     <button
-      onClick={() => setEnabled((v) => !v)}
+      onClick={() => {
+        window.dispatchEvent(new Event('wallowa-sound-change'))
+        setEnabled((v) => !v)
+      }}
       className='pointer-events-auto font-mono text-xs text-stone-300/80 transition-colors hover:text-stone-100'
       aria-pressed={enabled}
     >

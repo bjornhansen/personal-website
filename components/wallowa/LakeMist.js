@@ -5,6 +5,7 @@ import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { ATMOSPHERE, ATMOSPHERE_GLSL } from './atmosphere'
 import { NOISE_GLSL } from './glsl'
+import { benchmark } from './benchmark/config'
 
 const CENTER = { x: -10, z: 45 }
 const LAYERS = [0.35, 0.9, 1.5, 2.2]
@@ -62,7 +63,7 @@ export default function LakeMist() {
   )
 
   useFrame(() => {
-    if (group.current) group.current.visible = ATMOSPHERE.uMist.value > 0.01
+    if (group.current) group.current.visible = benchmark?.mist !== 'off' && ATMOSPHERE.uMist.value > 0.01
   })
 
   return (

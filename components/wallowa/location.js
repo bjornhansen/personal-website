@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useSceneStore } from './store'
+import { benchmark } from './benchmark/config'
 
 const SOUTHERN_ZONES = [
   ['Australia/', -32],
@@ -46,12 +47,12 @@ export function readSkyParams() {
     return Number.isFinite(n) ? n : undefined
   }
   return {
-    hour: num('t'),
-    date: q.get('date') || undefined,
-    speed: num('speed'),
-    lat: num('lat'),
-    lng: num('lng'),
-    clouds: num('clouds'),
+    hour: num('t') ?? (benchmark ? ({ night: 0, dawn: 5 }[benchmark.scenario] ?? 12) : undefined),
+    date: q.get('date') || (benchmark ? '2026-06-21' : undefined),
+    speed: num('speed') ?? (benchmark ? 0 : undefined),
+    lat: num('lat') ?? (benchmark ? 45.28 : undefined),
+    lng: num('lng') ?? (benchmark ? -117.21 : undefined),
+    clouds: num('clouds') ?? (benchmark ? 0.35 : undefined),
   }
 }
 

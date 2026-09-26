@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useLayoutEffect, useMemo } from 'react'
+import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { fbm, ridged, ridgedMulti, noise2D } from './noise'
 import { withAtmosphere } from './atmosphere'
@@ -8,6 +9,8 @@ import { NOISE_GLSL } from './glsl'
 import { DIRT, GROUND_EXTENT, commitGround, groundTexture, paintBlob, paintPath } from './groundMap'
 import { TRAIL_HALF_WIDTH, getTrails } from './trails'
 import { CAMP } from './Bear'
+import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
+import { DETAIL_TILE, createTerrainDetail } from './terrainDetail'
 
 const SIZE = GROUND_EXTENT
 const SEGMENTS = 256
@@ -78,6 +81,9 @@ const surfaceVertex = /* glsl */ `
 
 const surfaceFragment = /* glsl */ `
   uniform sampler2D uGround;
+  uniform sampler2D uField;
+  uniform sampler2D uDetail;
+  uniform sampler2D uFacet;
   uniform vec3 uRock;
   uniform vec3 uRockDark;
   uniform vec3 uSnow;
@@ -88,27 +94,50 @@ const surfaceFragment = /* glsl */ `
   ${NOISE_GLSL}
 `
 
-const surfaceColor = /* glsl */ `
-  vec2 gp = vGroundPos.xz;
-  vec4 ground = texture2D(uGround, gp / ${SIZE.toFixed(1)} + 0.5);
+const bakedFields = /* glsl */ `
+  vec4 field = texture2D(uField, gp / ${SIZE.toFixed(1)} + 0.5);
+  vec4 detail = texture2D(uDetail, gp / ${DETAIL_TILE.toFixed(1)});
+  float nLarge = field.r;
+  float nMid = field.g;
+  float tuftNoise = field.b;
+  float clumpNoise = field.a;
+  float nFine = detail.r;
+  float stoneEdge = detail.g * 0.25;
+  float stoneId = detail.b;
+  float gritId = detail.a;
+  float facetId = texture2D(uFacet, gp / ${DETAIL_TILE.toFixed(1)}).r;
+`
+
+const proceduralFields = /* glsl */ `
   float nLarge = fbm2(gp * 0.07 + 11.0, 3);
   float nMid = fbm2(gp * 0.35 - 4.0, 3);
+  float tuftNoise = fbm2(gp * 0.16 + 3.0, 3);
+  float clumpNoise = vnoise(gp * 0.9 + 21.0);
   float nFine = vnoise(gp * 2.1);
+  vec3 stones = voronoi(gp * 3.2);
+  float stoneEdge = stones.y;
+  float stoneId = stones.z;
+  float gritId = voronoi(gp * 2.2 + 9.0).z;
+  float facetId = voronoi(gp * 0.75).z;
+`
+
+const surfaceColor = (fields) => /* glsl */ `
+  vec2 gp = vGroundPos.xz;
+  vec4 ground = texture2D(uGround, gp / ${SIZE.toFixed(1)} + 0.5);
+  ${fields}
 
   vec3 base = diffuseColor.rgb;
-  float tuft = smoothstep(0.47, 0.53, fbm2(gp * 0.16 + 3.0, 3));
+  float tuft = smoothstep(0.47, 0.53, tuftNoise);
   base *= mix(0.9, 1.07, tuft) * (0.94 + nFine * 0.12);
   base = mix(base, base * vec3(1.08, 1.02, 0.86), smoothstep(0.55, 0.62, nLarge) * 0.6);
 
-  vec3 facetCell = voronoi(gp * 0.75);
-  base *= 1.0 + (facetCell.z - 0.5) * 0.1;
-  float clump = smoothstep(0.5, 0.56, vnoise(gp * 0.9 + 21.0));
+  base *= 1.0 + (facetId - 0.5) * 0.1;
+  float clump = smoothstep(0.5, 0.56, clumpNoise);
   base = mix(base, base * vec3(0.8, 0.9, 0.76), clump * 0.6);
 
   float shoreZone = 1.0 - smoothstep(1.2, 1.9, vGroundPos.y + (nMid - 0.5) * 0.4);
-  vec3 stones = voronoi(gp * 3.2);
-  float gap = 1.0 - smoothstep(0.02, 0.12, stones.y);
-  vec3 pebbles = base * mix(0.86, 1.14, stones.z) * (1.0 - gap * 0.16);
+  float gap = 1.0 - smoothstep(0.02, 0.12, stoneEdge);
+  vec3 pebbles = base * mix(0.86, 1.14, stoneId) * (1.0 - gap * 0.16);
   base = mix(base, pebbles, shoreZone);
 
   vec3 bloom = voronoi(gp * 2.4 + 50.0);
@@ -121,8 +150,7 @@ const surfaceColor = /* glsl */ `
   base = mix(base, duff, floorMask * 0.85);
 
   float dirt = smoothstep(0.32, 0.52, ground.b + (nMid - 0.5) * 0.35 + (nFine - 0.5) * 0.12);
-  vec3 grit = voronoi(gp * 2.2 + 9.0);
-  base = mix(base, uDirt * (0.84 + nFine * 0.16 + grit.z * 0.14), dirt);
+  base = mix(base, uDirt * (0.84 + nFine * 0.16 + gritId * 0.14), dirt);
 
   float rockMask = smoothstep(0.47, 0.53, vSurface.x + (nMid - 0.5) * 0.45 + (nLarge - 0.5) * 0.3);
   float strata = vnoise(vec2(vGroundPos.y * 0.55 + nMid * 1.8, gp.x * 0.02));
@@ -159,7 +187,7 @@ function paintCampGround() {
 }
 
 export default function Terrain() {
-  const geometry = useMemo(() => {
+  const geometry = useMemo(() => measureGeneration('terrain-generation', () => {
     const geo = new THREE.PlaneGeometry(SIZE, SIZE, SEGMENTS, SEGMENTS)
     geo.rotateX(-Math.PI / 2)
     const pos = geo.attributes.position
@@ -214,17 +242,31 @@ export default function Terrain() {
     geo.setAttribute('aSurface', new THREE.BufferAttribute(surface, 2))
     geo.computeVertexNormals()
     return geo
-  }, [])
+  }), [])
 
   useEffect(() => {
     paintCampGround()
   }, [])
 
+  const gl = useThree((s) => s.gl)
+  const detail = useMemo(() => createTerrainDetail(), [])
+
+  useLayoutEffect(() => {
+    const passes = measureGeneration('terrain-detail-bake', () => detail.bake(gl))
+    markBenchmark('terrain-detail-baked', { passes })
+    return () => detail.dispose()
+  }, [gl, detail])
+
   const material = useMemo(() => {
     const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 })
+    if (benchmark?.terrain === 'simple') return withAtmosphere(m, 'terrain-simple')
+    const procedural = benchmark?.terrain === 'procedural'
     m.onBeforeCompile = (shader) => {
       Object.assign(shader.uniforms, {
         uGround: { value: groundTexture },
+        uField: { value: detail.field },
+        uDetail: { value: detail.detail },
+        uFacet: { value: detail.facet },
         uRock: { value: new THREE.Color('#8d857b') },
         uRockDark: { value: new THREE.Color('#5a534c') },
         uSnow: { value: new THREE.Color('#eef2f4') },
@@ -239,12 +281,12 @@ export default function Terrain() {
         )
       shader.fragmentShader = shader.fragmentShader
         .replace('#include <common>', `#include <common>\n${surfaceFragment}`)
-        .replace('#include <color_fragment>', `#include <color_fragment>\n${surfaceColor}`)
+        .replace('#include <color_fragment>', `#include <color_fragment>\n${surfaceColor(procedural ? proceduralFields : bakedFields)}`)
         .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>\n${surfaceRoughness}`)
         .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>\n${surfaceNormal}`)
     }
-    return withAtmosphere(m, 'terrain')
-  }, [])
+    return withAtmosphere(m, procedural ? 'terrain-procedural' : 'terrain')
+  }, [detail])
 
   return <mesh geometry={geometry} material={material} castShadow receiveShadow />
 }

@@ -33,3 +33,6 @@ yarn-error.log*
 
 # jetbrains
 .idea
+
+# local agent notes and benchmark output
+/.context/

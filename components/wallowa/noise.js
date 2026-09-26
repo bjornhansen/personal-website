@@ -1,4 +1,5 @@
 // Compact 2D simplex noise (Stefan Gustavson public-domain port).
+import { benchmark, createRandom } from './benchmark/config'
 const F2 = 0.5 * (Math.sqrt(3) - 1)
 const G2 = (3 - Math.sqrt(3)) / 6
 
@@ -8,9 +9,10 @@ const GRAD = [
 
 const perm = new Uint8Array(512)
 const p = new Uint8Array(256)
+const random = benchmark ? createRandom(benchmark.seed) : Math.random
 for (let i = 0; i < 256; i++) p[i] = i
 for (let i = 255; i > 0; i--) {
-  const j = Math.floor(Math.random() * (i + 1))
+  const j = Math.floor(random() * (i + 1))
   ;[p[i], p[j]] = [p[j], p[i]]
 }
 for (let i = 0; i < 512; i++) perm[i] = p[i & 255]

@@ -1,7 +1,7 @@
 'use client'
 
-import { Suspense } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Suspense, useEffect } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Terrain from './Terrain'
 import Lake from './Lake'
@@ -16,15 +16,35 @@ import Atmosphere from './DayNight'
 import Sky from './Sky'
 import { useIsMobile } from './hooks'
 import { useObserverLocation } from './location'
+import { benchmark } from './benchmark/config'
+import { createFrameCap } from './frameCap'
 
-export default function Scene() {
+function CappedFrameloop() {
+  const advance = useThree((s) => s.advance)
+
+  useEffect(() => {
+    const cap = createFrameCap()
+    let start = null
+    let raf = requestAnimationFrame(function tick(now) {
+      raf = requestAnimationFrame(tick)
+      if (start === null) start = now
+      if (cap.tick(now)) advance((now - start) / 1000)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [advance])
+
+  return null
+}
+
+export default function Scene({ Benchmark }) {
   const isMobile = useIsMobile()
   useObserverLocation()
 
   return (
     <Canvas
-      dpr={[1, isMobile ? 1.75 : 2]}
-      shadows={{ enabled: true, type: THREE.PCFShadowMap }}
+      frameloop='never'
+      dpr={benchmark?.dpr ?? [1, isMobile ? 1.75 : 2]}
+      shadows={{ enabled: benchmark?.shadows !== 'off', type: THREE.PCFShadowMap }}
       camera={{ position: [0, 28, 185], fov: 55, near: 0.5, far: 9000 }}
       gl={{
         antialias: !isMobile,
@@ -62,6 +82,7 @@ export default function Scene() {
       <CampProps />
       <Greeting />
       <CameraRig />
+      {Benchmark ? <Benchmark /> : <CappedFrameloop />}
     </Canvas>
   )
 }
