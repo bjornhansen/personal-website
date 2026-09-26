@@ -19,7 +19,8 @@ lake in the Wallowa Mountains, guided by a quiet black bear named **Bear**.
 Stack: `three` + `@react-three/fiber` + `@react-three/drei` + `zustand`.
 Everything is procedural (terrain, lake, sky, day/night from the real sun
 and moon position at the visitor's location and clock) except vegetation models from the CC0 Quaternius Ultimate Nature
-Pack (`public/models/nature/`, converted via `scripts/convert-nature-pack.mjs`).
+Pack (`public/models/nature/`, converted via `scripts/convert-nature-pack.mjs`)
+and an original CC0 rigged bear generated with Blender (`public/models/bear.glb`).
 
 Behavior conventions:
 - Content belongs in the game world (dialogue, signs, dioramas) — not DOM
@@ -28,9 +29,16 @@ Behavior conventions:
   camera; Esc returns to camp.
 - Deferred loading: the scene paints first; vegetation and Bear stream in
   after (`Suspense` / deferred fetch).
-- Bear upgrade path: drop a rigged, animated GLB at
-  `public/models/bear.glb` and it replaces the procedural bear automatically
-  (plays Walk on the way in, Idle on arrival).
+- Bear: an original vertex-colored, skinned low-poly model plays Walk on
+  its approach and Idle on arrival. The walk cycle follows distance traveled
+  using the GLB's stride metadata; reduced motion skips the approach and
+  freezes the pose. The procedural bear remains a fallback if the asset is absent.
+- Bear review: `/wallowa/bear` is a separate studio with orbit, camera presets,
+  playback speed, pause, bones, and export reload controls. Source files,
+  regeneration, and validation are documented in [Bear asset](docs/bear-asset.md).
+- Animal library: CC0 Quaternius deer, stag, fox, and wolf GLBs and editable
+  Blender sources are imported for future scene placement. See
+  [Animal assets](docs/animal-assets.md) for clips, source links, and integration notes.
 - Respects `prefers-reduced-motion`; mobile gets reduced counts and DPR clamp.
 
 Sky, light, and water:
@@ -101,8 +109,7 @@ Goal: visitors learn about Bjorn and his work through play, not reading.
    one hidden-object collectible + the campfire story at night.
 
 Also on the shelf (from earlier discussion): terrain texture-splatting,
-LODs for vegetation, wind-sway shader for plants, and a rigged CC0 bear GLB
-(see `AGENTS.md`).
+LODs for vegetation, and wind-sway shader for plants (see `AGENTS.md`).
 
 ## Getting Started
 

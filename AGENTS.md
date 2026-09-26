@@ -27,6 +27,9 @@ and keep its measurements and implementation status current.
 
 - App Router in `app/`, shared components in `components/` (Wallowa scene
   files in `components/wallowa/`). No comments in code unless asked.
+- Bear refinement: read `docs/bear-handoff.md` first. The user requires all
+  image viewing and visual work to be delegated to Bedrock Opus 5.5; never
+  open or attach reference/render images in an Astra/main-agent session.
 - 3D scene rules:
   - Procedural-first: terrain, sky, water, lighting are all generated; only
     vegetation (`public/models/nature/*.glb`) and an optional bear

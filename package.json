@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
+    "check:bear": "node scripts/check-bear.mjs",
     "bench:wallowa": "node scripts/wallowa-benchmark.mjs",
     "bench:wallowa:report": "node scripts/wallowa-benchmark-report.mjs",
     "test:wallowa-benchmark": "node --test scripts/wallowa-benchmark.test.mjs",

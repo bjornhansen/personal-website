@@ -3,6 +3,7 @@ import path from 'node:path'
 
 const srcDir = process.argv[2] || '/tmp/qnat/OBJ'
 const outDir = process.argv[3] || 'public/models/nature'
+const animated = process.argv.includes('--animated')
 
 const MODELS = [
   'PineTree_1',
@@ -200,10 +201,14 @@ function toGLB(name, { positions, normals, colors, indices }) {
     buffers: [{ byteLength: buffers.reduce((s, b) => s + b.byteLength, 0) }],
   }
 
-  const jsonText = JSON.stringify(json)
-  const jsonPad = (4 - (jsonText.length % 4)) % 4
-  const jsonBuf = Buffer.from(jsonText + ' '.repeat(jsonPad))
   const binBuf = Buffer.concat(buffers.map((b) => Buffer.from(new Uint8Array(b))))
+  return encodeGLB(json, binBuf)
+}
+
+function encodeGLB(json, binBuf) {
+  const jsonBytes = Buffer.from(JSON.stringify(json))
+  const jsonPad = (4 - (jsonBytes.length % 4)) % 4
+  const jsonBuf = Buffer.concat([jsonBytes, Buffer.alloc(jsonPad, 0x20)])
   const binPad = (4 - (binBuf.length % 4)) % 4
   const binPadded = Buffer.concat([binBuf, Buffer.alloc(binPad)])
 
@@ -223,9 +228,46 @@ function toGLB(name, { positions, normals, colors, indices }) {
   return glb
 }
 
+function packAnimatedGLTF(file) {
+  const json = JSON.parse(fs.readFileSync(file, 'utf8'))
+  if (json.asset?.version !== '2.0' || !json.skins?.length || !json.animations?.length) {
+    throw new Error(`Expected a rigged, animated glTF 2.0 file: ${file}`)
+  }
+  if (json.buffers?.length !== 1 || json.images?.length || json.extensionsRequired?.length) {
+    throw new Error(`Expected one embedded buffer and no images or required extensions: ${file}`)
+  }
+  const uri = json.buffers[0].uri
+  if (!/^data:application\/(octet-stream|gltf-buffer);base64,/.test(uri)) {
+    throw new Error(`Expected embedded base64 geometry and animation data: ${file}`)
+  }
+  const bin = Buffer.from(uri.slice(uri.indexOf(',') + 1), 'base64')
+  if (bin.length !== json.buffers[0].byteLength) {
+    throw new Error(`Buffer length mismatch: ${file}`)
+  }
+  delete json.buffers[0].uri
+  return {
+    glb: encodeGLB(json, bin),
+    triangles: json.meshes.reduce((total, mesh) => total + mesh.primitives.reduce(
+      (count, primitive) => count + json.accessors[primitive.indices ?? primitive.attributes.POSITION].count / 3, 0,
+    ), 0),
+    clips: json.animations.length,
+  }
+}
+
 fs.mkdirSync(outDir, { recursive: true })
 let totalBytes = 0
-for (const name of MODELS) {
+const models = animated
+  ? fs.readdirSync(srcDir).filter((file) => file.endsWith('.gltf')).sort().map((file) => path.basename(file, '.gltf'))
+  : MODELS
+if (!models.length) throw new Error(`No models found in ${srcDir}`)
+for (const name of models) {
+  if (animated) {
+    const { glb, triangles, clips } = packAnimatedGLTF(path.join(srcDir, `${name}.gltf`))
+    fs.writeFileSync(path.join(outDir, `${name}.glb`), glb)
+    totalBytes += glb.length
+    console.log(name.padEnd(20), `${(glb.length / 1024).toFixed(1)} KB`, `${triangles} tris`, `${clips} clips`)
+    continue
+  }
   const objText = fs.readFileSync(path.join(srcDir, `${name}.obj`), 'utf8')
   const mtlText = fs.readFileSync(path.join(srcDir, `${name}.mtl`), 'utf8')
   const materials = parseMTL(mtlText)

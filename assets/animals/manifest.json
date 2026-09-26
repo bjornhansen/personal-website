@@ -1,0 +1,63 @@
+{
+  "pack": "Quaternius Ultimate Animated Animals",
+  "release": "July 2021",
+  "license": "CC0-1.0",
+  "packUrl": "https://quaternius.com/packs/ultimateanimatedanimals.html",
+  "folderUrl": "https://drive.google.com/drive/folders/1uJ3N5HfB7jKTseJUNQr3N4YaN0UuEtHk",
+  "files": [
+    {
+      "name": "License.txt",
+      "downloadUrl": "https://drive.google.com/uc?export=download&id=1F2uy8T2fRpdc6gZ4mnS02_C2E63WvKtn",
+      "bytes": 364,
+      "sha256": "83d8959f9fc56353ed571fbe2dc52e4bcd64508e2399501cd45ac2ce3df0bf8c"
+    },
+    {
+      "name": "Deer.gltf",
+      "downloadUrl": "https://drive.google.com/uc?export=download&id=1iGpXKrqYGyZCPGHPPSuDAoKnOXLhXJ0q",
+      "bytes": 3288813,
+      "sha256": "b8afd0647e7a74332ce802c8326dfefe1a2b76da67ab925a631aaddb5ae9bdd4"
+    },
+    {
+      "name": "Stag.gltf",
+      "downloadUrl": "https://drive.google.com/uc?export=download&id=1URNoFeIFblJXPFOV6qwPrxZr5dLZ3YGx",
+      "bytes": 3224724,
+      "sha256": "170b964909d16d1ab4d428b1d714f25016913d32481acd9c3d62923192583be6"
+    },
+    {
+      "name": "Fox.gltf",
+      "downloadUrl": "https://drive.google.com/uc?export=download&id=1z-CWoUC2vJxrqgGFTYlMaywpE1ooV-bA",
+      "bytes": 3163174,
+      "sha256": "2f36e3c9c75ecddda85c5f9944e98ee1e88e7c679a546534aff1cea8ecde64c7"
+    },
+    {
+      "name": "Wolf.gltf",
+      "downloadUrl": "https://drive.google.com/uc?export=download&id=1lFQoQ9ln2Z2wGuFFWObj9i5jHqUl_ftG",
+      "bytes": 3175890,
+      "sha256": "cc02e9d128b5715f352ee8bea086f97a35f1d875d240de99b0f9f2775c37d415"
+    },
+    {
+      "name": "Deer.blend",
+      "downloadUrl": "https://drive.google.com/uc?export=download&id=1XOyqlUcRPKO6J3eLTJypQt6LAuvCw4M_",
+      "bytes": 2603644,
+      "sha256": "e0561b31230bb10434fdaf1755a140dcffce80f1d1e36d5d674f922976d801a4"
+    },
+    {
+      "name": "Stag.blend",
+      "downloadUrl": "https://drive.google.com/uc?export=download&id=1JFpz-m6ZnSxCD50ImedmOHGFh_5aKQQd",
+      "bytes": 2315696,
+      "sha256": "09cc635a05452d149baadd285ee1ea2cfe5ea1e7e0a6067f2ea147e612c50c3c"
+    },
+    {
+      "name": "Fox.blend",
+      "downloadUrl": "https://drive.google.com/uc?export=download&id=1mURf8Sd70PZJlFJzodmvb756kM26w0A5",
+      "bytes": 2585572,
+      "sha256": "14bb38cd76fb6554a4ecbac9e972d54708f49c07f95c00f958143d48f64ca009"
+    },
+    {
+      "name": "Wolf.blend",
+      "downloadUrl": "https://drive.google.com/uc?export=download&id=1daskW0IjLfPK8tLe7qTRTrjNwzyrQnjl",
+      "bytes": 2571200,
+      "sha256": "fe31c3829dd2a8b9dfedb2e5cb656939a1d525ebd535a62434d2d25a4399cb9e"
+    }
+  ]
+}
