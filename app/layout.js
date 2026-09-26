@@ -1,26 +1,38 @@
-import { Newsreader, JetBrains_Mono, Hanken_Grotesk } from 'next/font/google'
+import localFont from 'next/font/local'
 import Script from 'next/script'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { Analytics } from '@vercel/analytics/next'
 import '@/styles/globals.css'
 
-const newsreader = Newsreader({
-  subsets: ['latin'],
+const newsreader = localFont({
+  src: [
+    {
+      path: '../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-normal.woff2',
+      weight: '300 600',
+      style: 'normal',
+    },
+    {
+      path: '../node_modules/@fontsource-variable/newsreader/files/newsreader-latin-wght-italic.woff2',
+      weight: '300 600',
+      style: 'italic',
+    },
+  ],
   variable: '--font-newsreader',
-  weight: ['300', '400', '500', '600'],
-  style: ['normal', 'italic'],
   display: 'swap',
+  adjustFontFallback: 'Times New Roman',
 })
-const mono = JetBrains_Mono({
-  subsets: ['latin'],
+const mono = localFont({
+  src: '../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2',
   variable: '--font-mono-new',
-  weight: ['400', '500', '700'],
+  weight: '400 700',
+  style: 'normal',
   display: 'swap',
 })
-const hanken = Hanken_Grotesk({
-  subsets: ['latin'],
+const hanken = localFont({
+  src: '../node_modules/@fontsource-variable/hanken-grotesk/files/hanken-grotesk-latin-wght-normal.woff2',
   variable: '--font-sans-new',
-  weight: ['400', '500', '600'],
+  weight: '400 600',
+  style: 'normal',
   display: 'swap',
 })
 

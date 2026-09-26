@@ -124,4 +124,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result. The 3D experience lives at [http://localhost:3000/wallowa](http://localhost:3000/wallowa).
 
-The homepage is `app/page.js` (App Router). This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Newsreader, JetBrains Mono, and Hanken Grotesk.
+The homepage is `app/page.js` (App Router). This project uses `next/font/local`
+with version-pinned Fontsource packages for Newsreader, JetBrains Mono, and
+Hanken Grotesk. Both development and production use Turbopack; builds load font
+files locally instead of fetching Google Fonts. See [Font loading](docs/font-loading.md).

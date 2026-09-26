@@ -13,9 +13,9 @@ and keep its measurements and implementation status current.
 - `npm run dev` — dev server (homepage `/`, 3D scene `/wallowa`)
 - `npm run build` — production build; run this before pushing changes to
   `/wallowa` (WebGL issues often only surface in prod mode)
-  - Production uses Webpack: Next 16.2.9's Turbopack Google Fonts resolver
-    failed on Vercel with `next/font/google queries have exactly one entry`
-    for Hanken Grotesk. Verify a Vercel build before changing the bundler back.
+  - Development and production use Turbopack. Fonts come from version-pinned
+    Fontsource packages through `next/font/local`, avoiding nondeterministic
+    Google Fonts responses at build time. See `docs/font-loading.md`.
 - `npm run lint` — ESLint (eslint-config-next + react-hooks rules; the repo
   runs with strict react-hooks purity/immutability checks — do not call
   `Math.random()` during render, and never mutate hook results directly;
