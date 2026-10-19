@@ -12,7 +12,7 @@ import { benchmark, benchmarkState } from './benchmark/config'
 const OVERVIEW_POS = new THREE.Vector3(0, 28, 185)
 const OVERVIEW_TARGET = new THREE.Vector3(0, 0, 20)
 
-function debugViewpoint() {
+export function debugViewpoint() {
   const q = new URLSearchParams(window.location.search)
   const cam = q.get('cam')
   const look = q.get('look')
@@ -44,7 +44,7 @@ function viewpointFor(id) {
   }
 }
 
-export default function CameraRig() {
+export default function CameraRig({ fly }) {
   const camera = useThree((s) => s.camera)
   const activeSection = useSceneStore((s) => s.activeSection)
   const reducedMotion = usePrefersReducedMotion()
@@ -60,6 +60,7 @@ export default function CameraRig() {
   }, [activeSection, debugView])
 
   useFrame((state, delta) => {
+    if (fly) return
     const t = benchmark ? benchmarkState.animationTime : state.clock.elapsedTime
     const speed = reducedMotion ? 1 : Math.min(1, delta * 2.4)
 

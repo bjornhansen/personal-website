@@ -10,6 +10,7 @@ import LakeMist from './LakeMist'
 import Bear from './Bear'
 import CampProps from './CampProps'
 import CameraRig from './CameraRig'
+import FlyCamera, { flyEnabled } from './FlyCamera'
 import Greeting from './Greeting'
 import Forest from './Forest'
 import GroundCover from './GroundCover'
@@ -39,6 +40,7 @@ function CappedFrameloop() {
 
 export default function Scene({ Benchmark }) {
   const isMobile = useIsMobile()
+  const fly = !Benchmark && flyEnabled()
   useObserverLocation()
 
   return (
@@ -83,7 +85,8 @@ export default function Scene({ Benchmark }) {
       <Bear />
       <CampProps />
       <Greeting />
-      <CameraRig />
+      <CameraRig fly={fly} />
+      {fly ? <FlyCamera /> : null}
       {Benchmark ? <Benchmark /> : <CappedFrameloop />}
     </Canvas>
   )

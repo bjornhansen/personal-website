@@ -83,7 +83,9 @@ Sky, light, and water:
   `trailDistance()` and `creekDistance()`.
 - Debug params: `?t=19.5` (local hour), `?date=2026-06-21`, `?speed=600`
   (timelapse), `?clouds=0..1`, `?lat=45.28&lng=-117.21`, `?cam=x,y,z&look=x,y,z`
-  (fixed debug camera).
+  (fixed debug camera), `?fly=1` (free fly camera: WASD move, Q/E or
+  Space/Ctrl for altitude, Shift sprints, drag or arrow keys to look; soft
+  ground clamp; composes with `?cam`/`?look` for the spawn point).
 
 ### Performance goals and plan
 
