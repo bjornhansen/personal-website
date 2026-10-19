@@ -6,27 +6,30 @@ import * as THREE from 'three'
 import { ATMOSPHERE, ATMOSPHERE_GLSL, FOG_FAR, FOG_NEAR } from './atmosphere'
 import { NOISE_GLSL } from './glsl'
 import { noise2D } from './noise'
-import { CREEK_DEPTH, CREEK_HALF_WIDTH, getCreek } from './creekbed'
+import { CREEK_BANK_RADIUS, CREEK_HALF_WIDTH, CREEK_MOUTH_DEPTH, getCreek } from './creekbed'
 import { usePrefersReducedMotion } from './hooks'
 import { benchmark, benchmarkState, measureGeneration } from './benchmark/config'
 
-const MAX_DROP = 0.3
-const BED_CLEARANCE = 0.12
-const BANK_CLEARANCE = 0.35
+const WATER_DEPTH = 0.45
+const LAKE_LEVEL = 0
+const SOURCE_FADE = 12
 
 const vert = /* glsl */ `
   attribute float aCenter;
   attribute float aSpeed;
   attribute float aFade;
+  attribute float aDepth;
   varying vec3 vWorldPos;
   varying float vFlow;
   varying float vCenter;
   varying float vSpeed;
   varying float vFade;
+  varying float vDepth;
   void main() {
     vCenter = aCenter;
     vSpeed = aSpeed;
     vFade = aFade;
+    vDepth = aDepth;
     vFlow = uv.y;
     vec4 world = modelMatrix * vec4(position, 1.0);
     vWorldPos = world.xyz;
@@ -43,6 +46,7 @@ const frag = /* glsl */ `
   varying float vCenter;
   varying float vSpeed;
   varying float vFade;
+  varying float vDepth;
 
   ${NOISE_GLSL}
   ${ATMOSPHERE_GLSL}
@@ -60,6 +64,7 @@ const frag = /* glsl */ `
     float cosV = max(dot(normal, view), 0.0);
     float fresnel = 0.02 + 0.98 * pow(1.0 - cosV, 5.0);
     fresnel = mix(fresnel, 1.0, 0.08);
+    fresnel *= mix(1.0, 0.6, smoothstep(60.0, 220.0, dist));
 
     vec3 reflection = skyGradient(reflect(-view, normal));
     vec3 halfDir = normalize(uSunDir + view);
@@ -69,19 +74,20 @@ const frag = /* glsl */ `
     reflection += uSunDisc * glint * 0.15;
 
     vec3 shallow = uWater * vec3(1.8, 2.2, 1.95) + uHalo * 0.05;
-    vec3 body = mix(shallow, uWater, 0.75);
-    float bodyAlpha = 0.5;
+    float deep = smoothstep(0.3, 1.6, vDepth);
+    vec3 body = mix(shallow, uWater, mix(0.6, 0.9, deep));
+    float bodyAlpha = mix(0.5, 0.85, deep);
     float alpha = 1.0 - (1.0 - fresnel) * (1.0 - bodyAlpha);
     vec3 col = (reflection * fresnel + body * bodyAlpha * (1.0 - fresnel)) / max(alpha, 1e-3);
 
     float rush = fbm2(vec2(vCenter * 1.9 + 2.0, vFlow * 0.85) - vec2(0.0, uTime * speed * 0.22), 2);
     float bankFoam = smoothstep(0.65, 0.98, abs(vCenter)) * smoothstep(0.76, 0.96, rush + vSpeed * 0.25);
-    float patchFoam = smoothstep(0.84, 0.96, rush) * vSpeed * 0.35 * (1.0 - smoothstep(0.5, 0.85, abs(vCenter)));
-    float foam = clamp(bankFoam * 0.4 + patchFoam, 0.0, 0.55);
-    foam *= mix(1.0, 0.3, night);
+    float patchFoam = smoothstep(0.86, 0.97, rush) * vSpeed * 0.25 * (1.0 - smoothstep(0.5, 0.85, abs(vCenter)));
+    float foam = clamp(bankFoam * 0.25 + patchFoam, 0.0, 0.4);
+    foam *= mix(1.0, 0.3, night) * (1.0 - smoothstep(60.0, 220.0, dist));
     col = mix(col, vec3(0.75, 0.78, 0.8), foam);
 
-    float edge = 1.0 - smoothstep(0.78, 1.0, abs(vCenter));
+    float edge = 1.0 - smoothstep(0.88, 1.0, abs(vCenter));
     alpha = clamp(max(alpha, foam * 0.85), 0.0, 1.0) * edge * vFade;
 
     gl_FragColor = vec4(col, alpha);
@@ -96,21 +102,20 @@ const frag = /* glsl */ `
 
 function buildRibbon() {
   const creek = getCreek()
-  const { points, bedHeights, lengths, mouthIndex } = creek
+  const { points, base, bedHeights, lengths } = creek
   const n = points.length
   if (n < 4) return null
 
   const ys = new Float32Array(n)
-  let prev = 0
   for (let i = 0; i < n; i++) {
-    if (i <= mouthIndex) {
-      ys[i] = 0
-    } else {
-      const ds = lengths[i] - lengths[i - 1]
-      const target = Math.max(bedHeights[i] + BED_CLEARANCE, prev - MAX_DROP * ds)
-      ys[i] = Math.min(prev, target, bedHeights[i] + CREEK_DEPTH + BANK_CLEARANCE)
+    let sum = 0
+    let count = 0
+    for (let j = Math.max(0, i - 2); j <= Math.min(n - 1, i + 2); j++) {
+      sum += bedHeights[j]
+      count++
     }
-    prev = ys[i]
+    const surface = Math.max(sum / count + WATER_DEPTH - 0.2, bedHeights[i] + WATER_DEPTH)
+    ys[i] = Math.max(surface, LAKE_LEVEL)
   }
 
   const positions = new Float32Array(n * 2 * 3)
@@ -118,9 +123,7 @@ function buildRibbon() {
   const centers = new Float32Array(n * 2)
   const speeds = new Float32Array(n * 2)
   const fades = new Float32Array(n * 2)
-
-  const startFade = lengths[mouthIndex] - 1
-  const endFadeStart = lengths[n - 1] - 5
+  const depths = new Float32Array(n * 2)
 
   for (let i = 0; i < n; i++) {
     const [x, z] = points[i]
@@ -131,15 +134,26 @@ function buildRibbon() {
     const tl = Math.hypot(tx, tz) || 1
     tx /= tl
     tz /= tl
-    const w = CREEK_HALF_WIDTH * (0.6 + 0.2 * (noise2D(lengths[i] * 0.22, 47.9) + 1))
+    const flood = THREE.MathUtils.clamp((LAKE_LEVEL - (bedHeights[i] + WATER_DEPTH)) / 0.5, 0, 1)
+    const w = THREE.MathUtils.lerp(
+      CREEK_HALF_WIDTH * (1.05 + 0.1 * noise2D(lengths[i] * 0.22, 47.9)),
+      CREEK_BANK_RADIUS,
+      flood
+    )
     const px = -tz * w
     const pz = tx * w
 
-    const slope = i === 0 ? 0 : (bedHeights[i - 1] - bedHeights[i]) / Math.max(0.001, lengths[i] - lengths[i - 1])
-    const speed = THREE.MathUtils.clamp(slope * 5, 0.15, 1.2)
+    let slope = 0
+    let weight = 0
+    for (let j = Math.max(1, i - 4); j <= Math.min(n - 1, i + 4); j++) {
+      const wgt = 5 - Math.abs(j - i)
+      slope += wgt * (ys[j - 1] - ys[j]) / Math.max(0.001, lengths[j] - lengths[j - 1])
+      weight += wgt
+    }
+    const speed = THREE.MathUtils.clamp((slope / Math.max(weight, 1)) * 2.5, 0.15, 1)
     const fade =
-      THREE.MathUtils.smoothstep(lengths[i], startFade, startFade + 3) *
-      (1 - THREE.MathUtils.smoothstep(lengths[i], endFadeStart, lengths[n - 1]))
+      THREE.MathUtils.smoothstep(lengths[i], 0, SOURCE_FADE) *
+      THREE.MathUtils.smoothstep(base[i], -CREEK_MOUTH_DEPTH * 0.6, 0.1)
 
     for (let side = 0; side < 2; side++) {
       const v = i * 2 + side
@@ -152,6 +166,7 @@ function buildRibbon() {
       centers[v] = sign
       speeds[v] = speed
       fades[v] = fade
+      depths[v] = ys[i] - bedHeights[i]
     }
   }
 
@@ -173,6 +188,7 @@ function buildRibbon() {
   geometry.setAttribute('aCenter', new THREE.BufferAttribute(centers, 1))
   geometry.setAttribute('aSpeed', new THREE.BufferAttribute(speeds, 1))
   geometry.setAttribute('aFade', new THREE.BufferAttribute(fades, 1))
+  geometry.setAttribute('aDepth', new THREE.BufferAttribute(depths, 1))
   geometry.setIndex(new THREE.BufferAttribute(indices, 1))
   geometry.computeBoundingSphere()
   return geometry

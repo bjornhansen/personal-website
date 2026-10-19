@@ -25,6 +25,8 @@ and keep its measurements and implementation status current.
   `docs/wallowa-performance.md` → "Running the benchmark harness"
 - `npm run test:wallowa-benchmark` (unit) and `test:wallowa-benchmark:smoke`
   (visible Chromium against `npm run start -- --port 3100`)
+- `npm run test:wallowa-creek` — creek route validity across noise seeds;
+  `node scripts/wallowa-creek-probe.mjs <seed> --map` for an ASCII map
 
 ## Conventions
 
@@ -46,10 +48,16 @@ and keep its measurements and implementation status current.
     (timeOfDay, isNight, activeSection, bearArrived).
   - Placement must sample `terrainHeight`/`meadowMask`/`lakeBowl` from
     `Terrain.js` — never hardcode ground heights — and skip
-    `trailDistance()` < ~1–2 units and `creekDistance()` < ~1–2 units
-    (from `creekbed.js`). The creek carve is part of `terrainHeight`; the
-    lake depth bake must use `baseHeight`, never `terrainHeight`, or the
-    lake plane will cover the creek channel.
+    `trailDistance()` < ~1–2 units and `creekDistance()` < the creek
+    constants in `creekbed.js` (`CREEK_BANK_RADIUS` + canopy for trees,
+    `CREEK_HALF_WIDTH + 1.5` for ground cover). The creek carve is part of
+    `terrainHeight`; the lake depth bake must use `baseHeight`, never
+    `terrainHeight`, or the lake plane will cover the creek channel.
+  - `heightfield.js` (base terrain functions) and `places.js` (LAKE, CAMP,
+    BEAR, SPAWN) are React-free and Node-importable with explicit `.js`
+    imports; `creekbed.js` depends only on those so
+    `npm run test:wallowa-creek` can validate routes across seeds. Keep it
+    that way (no React/R3F imports in these modules).
   - All sky/light/fog colors come from `palette.js` via the shared uniforms
     in `atmosphere.js`; don't hardcode time-of-day colors in components.
     New large/distant materials should be wrapped in `withAtmosphere()`.

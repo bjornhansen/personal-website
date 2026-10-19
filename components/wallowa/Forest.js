@@ -8,7 +8,7 @@ import { terrainHeight, meadowMask, lakeBowl } from './Terrain'
 import { CAMP, BEAR } from './Bear'
 import { CANOPY, CONTACT, commitGround, paintBlob } from './groundMap'
 import { trailDistance } from './trails'
-import { creekDistance } from './creekbed'
+import { CREEK_BANK_RADIUS, CREEK_HALF_WIDTH, creekDistance } from './creekbed'
 import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
 
 const model = (n) => `/models/nature/${n}.glb`
@@ -111,18 +111,30 @@ export default function Forest({
       if (Math.hypot(x - BEAR.x, z - BEAR.z) < 5) continue
       if (h > -0.35 && h < 1.2 && placed.pebble.length < caps.pebble && rand() < 0.6) {
         if (trailDistance(x, z) < 1) continue
-        if (creekDistance(x, z) < 1) continue
+        if (creekDistance(x, z) < CREEK_HALF_WIDTH * 0.5) continue
         pick('pebble', x, h - 0.08, z, 0.6 + rand() * 1.1)
         continue
       }
       if (h < 1.4) continue
       if (lakeBowl(x, z) > 0.05) continue
       if (trailDistance(x, z) < 2.2) continue
-      if (creekDistance(x, z) < 2.2) continue
+      const creek = creekDistance(x, z)
+      if (creek < CREEK_BANK_RADIUS) continue
 
       const meadow = meadowMask(x, z)
       const clump = (rand() + rand() + rand()) / 3
       const shore = lakeBowl(x, z)
+
+      if (creek < CREEK_BANK_RADIUS + 2.5) {
+        if (rand() < 0.45 && placed.rock.length < caps.rock) {
+          pick('rock', x, h, z, 0.4 + rand() * 0.9)
+        } else if (rand() < 0.4 && placed.rockMoss.length < caps.rockMoss) {
+          pick('rockMoss', x, h, z, 0.4 + rand() * 0.9)
+        } else if (rand() < 0.3 && h < 10 && placed.bush.length < caps.bush) {
+          pick('bush', x, h, z, 1)
+        }
+        continue
+      }
 
       if (h > 14 && placed.pineSnow.length < caps.pineSnow) {
         pick('pineSnow', x, h, z, 1)

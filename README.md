@@ -60,14 +60,23 @@ Sky, light, and water:
 - Lake is a planar `Reflector` with a baked depth texture; ripple rings come
   from fish jumps and clicks (`uRipples`), splashes emit `splash` in the
   store for the audio.
-- Creek: an outlet stream flows from the lake through a carved creekbed
-  (`creekbed.js`: deterministic route + distance field; the carve is part of
-  `terrainHeight`, so trails/placement/depth stay consistent). The bed reads
-  as wet pebbles through the ground map's alpha channel (`CREEK = 3`); the
-  water is one static ribbon mesh with a scrolling-noise shader
-  (`Creek.js`) — analytic sky reflection, bank foam, no extra render passes.
-  The lake's depth bake uses `baseHeight` so the plane never covers the
-  channel. Placement must avoid `creekDistance()` like `trailDistance()`.
+- Creek: an inlet stream descends from the mountain foot at the back-west
+  of the lake into its shore (`creekbed.js`). The source is chosen from a
+  ring of candidates around the lake (camp/trail side excluded), the route is
+  a gradient-descent walk toward the lake with meander, and the bed is the
+  running minimum of the terrain along it (so it carves through small humps
+  instead of stopping). A 512² distance + bed-height field carves the channel
+  into `terrainHeight`, so trails/placement/depth stay consistent. The bed
+  reads as dark wet stone through the ground map's alpha channel
+  (`CREEK = 3`) plus darkened vertex colors; the water is one static ribbon
+  (`Creek.js`) whose surface sits a fixed depth above the bed, floods to lake
+  level at the mouth, and uses a scrolling-noise shader with analytic sky
+  reflection and foam — no extra render passes. The lake's depth bake uses
+  `baseHeight` so the plane never covers the channel. Placement must avoid
+  `creekDistance()` (trees ≥ `CREEK_BANK_RADIUS + 2.5`, grass/pebbles ≥
+  `CREEK_HALF_WIDTH + 1.5`). `npm run test:wallowa-creek` checks the route
+  across seeds; `node scripts/wallowa-creek-probe.mjs <seed> --map` prints
+  stats and an ASCII map.
 - Ground detail: `groundMap.js` is a shared texture (R contact shadow,
   G canopy/forest floor, B dirt, A creek/wet) painted by Forest, CampProps,
   and the trails in `trails.js`; placement code should avoid

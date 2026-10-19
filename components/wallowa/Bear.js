@@ -10,10 +10,9 @@ import { terrainHeight } from './Terrain'
 import { usePrefersReducedMotion } from './hooks'
 import { benchmark, benchmarkState, markBenchmark } from './benchmark/config'
 import { withAtmosphere } from './atmosphere'
+import { BEAR, CAMP, SPAWN } from './places'
 
-export const CAMP = { x: 56, z: 88 }
-export const BEAR = { x: 62, z: 95 }
-export const SPAWN = { x: 130, z: 40 }
+export { BEAR, CAMP, SPAWN }
 export const WALK_SECONDS = 9
 
 const DEST = new THREE.Vector3(BEAR.x, 0, BEAR.z)

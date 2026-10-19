@@ -567,30 +567,51 @@ and 5.4M triangles across the main and reflection passes.
 | Mist off | Dawn | −8% | −1% | negligible | — | Unmeasured | — | Diagnostic | Dawn-only, minor |
 | Ground cover 0% / 50% | M5 Pro / day | −7% / −4% | ~0% | negligible | — | Unmeasured | — | Diagnostic | Minor |
 
-#### Implemented feature: outlet creek, 2026-10-18
+#### Implemented feature: inlet creek, 2026-10-18 (reworked 2026-10-19)
 
-An outlet stream now flows from the lake (`creekbed.js` + `Creek.js`). The
-route is generated deterministically from the seeded noise: the lowest
-shoreline rim with a dry outward path is picked, and a downhill walk with
-noise meander traces the centerline. A 512² distance field (~1 MB,
-bilinear-sampled, built lazily in a few ms) carves the channel into
-`terrainHeight` via `creekCarve`, so the terrain mesh, trails, vegetation
-placement, and shadows all see the carved world automatically. The creekbed
-is painted into the ground map's free alpha channel (`CREEK = 3`) and the
-terrain shader mixes wet-stone/pebble shading from it; the lake depth bake
-uses `baseHeight` so the lake plane never renders over the carved channel.
-The water is one static ribbon mesh (one draw call, ~36 triangles for the
-seed-1849 route, `depthWrite: false`, `renderOrder: 2` after the lake) with
-a fragment shader from the Lake toolbox: two scrolled `vnoised` octaves,
-Fresnel over analytic `skyGradient` reflections, a rare sun glint,
-thresholded-noise bank/patch foam, and alpha fades at the mouth and far end.
-All animation is `uTime`-driven (frozen at 0 under reduced motion); there is
-no per-frame CPU work and no extra render passes.
+A stream now descends from the mountain foot at the back-west of the lake
+into its shore (`creekbed.js` + `Creek.js`). The first version was an
+"outlet" walking away from the lake; because the lake is the basin of the
+whole height field, that walk could only wander along the shore for ~16
+units, and its water ribbon was clamped monotonically from y=0 so it sat
+under the carved bed on every rising stretch — hence "no visible creek".
+The rework:
 
-Measured on the reference M5 Pro (Mac17,9), production build in Playwright
-Chromium, day scenario, 60-second samples, two alternating pairs
-(`bench=1&seed=1849`, `creek=on` vs `creek=off`; the carve is part of the
-world and not toggleable, so this isolates the ribbon pass):
+- Source candidates are sampled on a ring around the lake (6 scales × 126
+  angles), excluding the camp/trail/bear side (`x > 40`, `z > 70`, keep-out
+  circles) and requiring base height 3.5–26. Each candidate is walked
+  downhill at 1-unit spacing (gradient + lake-ward bias + momentum + noise
+  meander) until it is 1.2 units under the lake surface. The bed is the
+  running minimum of the terrain along the route, so small humps are cut
+  through (max 2.2) instead of stopping the walk; a backward pass caps bed
+  drops at 0.5/unit, a ±5 moving average removes terraces, and a final
+  clamp keeps the channel ≥ 1 unit deep. Routes are scored by length,
+  source height, and cut; the search stops early at a good score.
+- The distance field now also stores the bed height of the nearest segment;
+  `creekCarve(x, z, base)` carves `base - bed` with a smoothstep bank
+  profile (half-width 2.4, bank radius 4.8, depth 1.6), so the channel is
+  ~6 terrain vertices wide at the 1.64-unit mesh spacing.
+- The water surface is `max(bed + 0.45, 0)` (never below the bed, floods to
+  lake level at the mouth, where the ribbon widens to the bank radius and is
+  clipped by the terrain), with depth-dependent opacity, distance-faded foam
+  and Fresnel, and a mouth fade keyed to base height so it hands off to the
+  lake's own depth-based alpha.
+- `heightfield.js` / `places.js` hold the React-free terrain functions and
+  landmark constants so the route generator runs in Node;
+  `npm run test:wallowa-creek` validates 10 seeds.
+
+Init cost, measured in Node (M-series laptop, `scripts/wallowa-creek-probe.mjs`):
+route search 25–40 ms, distance field 4–5 ms, for routes of 125–165 points.
+This runs lazily inside the first `terrainHeight` call (the
+`terrain-generation` span), replacing the previous ~5–7 ms. The ribbon is
+~130 points → ~260 triangles, one draw call, no per-frame CPU work; the
+previous A/B (`creek=on|off`, below) measured the 36-triangle ribbon at
+≤ ~1% of GPU time and has **not** been re-run for the new ribbon — rerun
+`npm run bench:wallowa -- --experiment creek` before relying on the numbers.
+
+Previous measurement (old ribbon), reference M5 Pro (Mac17,9), production
+build in Playwright Chromium, day scenario, 60-second samples, two
+alternating pairs (`bench=1&seed=1849`, `creek=on` vs `creek=off`):
 
 | Metric | creek on (baseline) | creek off | Paired Δ (off − on) |
 | --- | --- | --- | --- |
@@ -602,14 +623,10 @@ world and not toggleable, so this isolates the ribbon pass):
 | CPU ms (median) | 0.20 | 0.25 | +0.05 ms (within run noise) |
 | Rendered FPS / budget misses | 60.0 / 0% | 60.0 / ~0% | none |
 
-Baseline GPU noise was 0.2%; the paired deltas disagree in direction between
-median and p95, so the ribbon pass cost is below what two pairs can resolve —
-at most ~1% of GPU time (~0.06 ms). Init cost: the route + distance field
-build lazily inside the first `terrainHeight` calls (~5–7 ms in the
-`terrain-generation` span; `creek-generation` itself is ≤ 0.1 ms for the
-ribbon). Placement counts are unchanged: the rejection loops refill their
-caps (creek avoidance widens the channel exclusion by ~110 units² of the
-160,000-unit² sampling area).
+Known polish items from the render review (not blocking): the far creek
+still reads paler than the lake from the overview; the wet-stone band is
+subtle where banks are already grey rock; faint reflection streaks across
+the stream near the mouth; the source starts without a pool.
 
 #### Implemented optimizations, 2026-09-25
 

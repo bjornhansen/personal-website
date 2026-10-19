@@ -3,13 +3,14 @@
 import { useEffect, useLayoutEffect, useMemo } from 'react'
 import { useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { fbm, ridged, ridgedMulti, noise2D } from './noise'
+import { noise2D } from './noise'
 import { withAtmosphere } from './atmosphere'
 import { NOISE_GLSL } from './glsl'
 import { DIRT, GROUND_EXTENT, CREEK, commitGround, groundTexture, paintBlob, paintPath } from './groundMap'
 import { TRAIL_HALF_WIDTH, getTrails } from './trails'
-import { CREEK_HALF_WIDTH, creekCarve, getCreek } from './creekbed'
-import { CAMP } from './Bear'
+import { CREEK_BANK_RADIUS, CREEK_DEPTH, creekCarve, getCreek } from './creekbed'
+import { baseHeight, lakeBowl, meadowMask } from './heightfield'
+import { CAMP } from './places'
 import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
 import { DETAIL_TILE, createTerrainDetail } from './terrainDetail'
 
@@ -17,56 +18,11 @@ const SIZE = GROUND_EXTENT
 const SEGMENTS = 256
 const WATER_LEVEL = 0
 
-export function baseHeight(x, z) {
-  const worldX = x * 0.012
-  const worldZ = z * 0.012
-  const warpX = fbm(worldX * 0.9 + 5.2, worldZ * 0.9 + 1.3, 3) * 0.5
-  const warpZ = fbm(worldX * 0.9 - 7.1, worldZ * 0.9 + 3.7, 3) * 0.5
-  const wx = worldX + warpX
-  const wz = worldZ + warpZ
-
-  let h = fbm(wx, wz, 5) * 4 + 2.5
-  h += fbm(wx * 3.7 + 91.3, wz * 3.7 - 44.8, 3) * 1.1
-
-  const backness = THREE.MathUtils.smoothstep(-z, 30, 160)
-  const peakMask = backness * THREE.MathUtils.smoothstep(
-    Math.abs(x) * 0.4 + backness * 60,
-    20,
-    90
-  )
-  const horns =
-    ridged(worldX * 0.55 + 13.2 + warpX * 0.2, worldZ * 0.55 - 7.8, 6) * 40 +
-    ridgedMulti(worldX * 1.4 - 3.1, worldZ * 1.4 + 5.5, 5) * 18
-  const gully = Math.pow(1 - Math.abs(noise2D(wx * 4.2 + 3.3, worldZ * 1.4 - 8.1)), 6)
-  h += peakMask * (horns - gully * 3.5 * THREE.MathUtils.smoothstep(horns, 8, 24))
-
-  const lakeX = THREE.MathUtils.clamp((x + 10) / 90, -1, 1)
-  const lakeZ = THREE.MathUtils.clamp((z - 45) / 110, -1, 1)
-  const bowl =
-    1 -
-    Math.min(1, Math.sqrt(lakeX * lakeX + lakeZ * lakeZ) * 1.15)
-  h -= bowl * 9
-  h -= bowl * bowl * 5
-
-  const shoreNoise = noise2D(worldX * 2.3, worldZ * 2.3) * 0.6
-  h += shoreNoise * (0.3 + 1 - Math.abs(bowl))
-
-  return h
-}
+export { baseHeight, meadowMask, lakeBowl }
 
 export function terrainHeight(x, z) {
-  return baseHeight(x, z) - creekCarve(x, z)
-}
-
-export function meadowMask(x, z) {
-  const n = fbm(x * 0.0075 + 41.7, z * 0.0075 - 17.3, 4)
-  return (n + 1) * 0.5
-}
-
-export function lakeBowl(x, z) {
-  const lakeX = THREE.MathUtils.clamp((x + 10) / 90, -1, 1)
-  const lakeZ = THREE.MathUtils.clamp((z - 45) / 110, -1, 1)
-  return 1 - Math.min(1, Math.sqrt(lakeX * lakeX + lakeZ * lakeZ) * 1.15)
+  const base = baseHeight(x, z)
+  return base - creekCarve(x, z, base)
 }
 
 const cGrass = new THREE.Color('#4f6b3a')
@@ -145,7 +101,7 @@ const surfaceColor = (fields) => /* glsl */ `
   float gap = 1.0 - smoothstep(0.02, 0.12, stoneEdge);
   vec3 pebbles = base * mix(0.86, 1.14, stoneId) * (1.0 - gap * 0.16);
   base = mix(base, pebbles, max(shoreZone, creek * 0.75));
-  vec3 creekStone = mix(uRockDark * 0.8, uRock * 1.02, stoneId) * (0.82 + nFine * 0.25);
+  vec3 creekStone = mix(uRockDark * 0.55, uRock * 0.8, stoneId) * (0.82 + nFine * 0.25) * vec3(0.92, 0.96, 1.0);
   base = mix(base, creekStone, creek);
 
   vec3 bloom = voronoi(gp * 2.4 + 50.0);
@@ -171,7 +127,7 @@ const surfaceColor = (fields) => /* glsl */ `
   float waterline = vGroundPos.y + (nFine - 0.5) * 0.15;
   float wet = (1.0 - smoothstep(0.05, 0.55, waterline)) * step(-0.6, waterline);
   wet = max(wet, creek);
-  base *= mix(1.0, 0.6, wet * (1.0 - snowMask));
+  base *= mix(1.0, 0.6, wet * (1.0 - snowMask)) * mix(1.0, 0.75, creek);
 
   base = mix(base, petalColor, petal * (1.0 - floorMask) * (1.0 - dirt) * (1.0 - rockMask) * (1.0 - snowMask) * (1.0 - shoreZone) * (1.0 - creek));
   base *= 1.0 - ground.r * 0.6;
@@ -180,6 +136,7 @@ const surfaceColor = (fields) => /* glsl */ `
 
 const surfaceRoughness = /* glsl */ `
   roughnessFactor = mix(roughnessFactor, 0.68, wet);
+  roughnessFactor = mix(roughnessFactor, 0.5, creek);
   roughnessFactor = mix(roughnessFactor, 0.75, snowMask);
 `
 
@@ -194,11 +151,12 @@ function paintCampGround() {
   paintBlob(DIRT, CAMP.x - 12, CAMP.z + 3, 3.4, 1, 0.5)
   const creek = getCreek()
   if (creek.points.length > 3) {
-    paintPath(CREEK, creek.points, CREEK_HALF_WIDTH + 0.4, 1)
-    for (let i = creek.mouthIndex; i < creek.points.length; i += 5) {
+    paintPath(CREEK, creek.points, CREEK_BANK_RADIUS, 1, 0.3)
+    for (let i = 0; i < creek.points.length; i += 4) {
       const [x, z] = creek.points[i]
-      paintBlob(CREEK, x, z, 2.4, 0.45, 1.2)
+      paintBlob(CREEK, x, z, CREEK_BANK_RADIUS + 1.5, 0.4, 1.2)
     }
+    paintBlob(CREEK, creek.points[0][0], creek.points[0][1], CREEK_BANK_RADIUS + 2, 0.7, 1)
   }
   commitGround()
 }
@@ -216,7 +174,9 @@ export default function Terrain() {
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i)
       const z = pos.getZ(i)
-      const h = terrainHeight(x, z)
+      const base = baseHeight(x, z)
+      const h = base - creekCarve(x, z, base)
+      const channel = Math.min(1, (base - h) / CREEK_DEPTH)
       pos.setY(i, h)
 
       const hx = terrainHeight(x + sample, z)
@@ -240,6 +200,7 @@ export default function Terrain() {
         color.copy(cGrass).lerp(cGrassDry, n * 0.6)
       }
       if (h > 14) color.lerp(cAlpine, Math.min(1, (h - 14) / 12))
+      if (channel > 0) color.lerp(cGraniteWet, channel * 0.85)
 
       const heightRock = THREE.MathUtils.smoothstep(h, 16, 30) * 0.7
       const rock = Math.min(1, Math.max(slope * 0.95, heightRock) + Math.max(0, n - 0.72))

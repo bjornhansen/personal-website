@@ -1,113 +1,94 @@
-import { noise2D } from './noise'
-import { baseHeight } from './Terrain'
-import { LAKE } from './trails'
-import { BEAR, CAMP, SPAWN } from './Bear'
-import { GROUND_EXTENT } from './groundMap'
+import { noise2D } from './noise.js'
+import { baseHeight } from './heightfield.js'
+import { BEAR, CAMP, LAKE, SPAWN } from './places.js'
+import { GROUND_EXTENT } from './groundMap.js'
 
-export const CREEK_HALF_WIDTH = 1.7
-export const CREEK_DEPTH = 1
+export const CREEK_HALF_WIDTH = 2.4
+export const CREEK_DEPTH = 1.6
 export const CREEK_BANK_RADIUS = CREEK_HALF_WIDTH * 2
-export const CREEK_MAX_POINTS = 110
+export const CREEK_MAX_POINTS = 260
+export const CREEK_MOUTH_DEPTH = 1.2
 
 const FIELD_RES = 512
 const FIELD_EXTENT = GROUND_EXTENT
 const FAR = 100
 const SPACING = 1
-const EXTENT_LIMIT = FIELD_EXTENT / 2 - 3
+const EXTENT_LIMIT = FIELD_EXTENT / 2 - 6
+const EAST_LIMIT = 40
+const SOUTH_LIMIT = 70
+const MAX_CUT = 2.2
+const MAX_STEP_DROP = 0.5
+const SMOOTH_RADIUS = 5
+const MIN_CHANNEL = 1
+const MIN_LENGTH = 45
+const SOURCE_MIN_HEIGHT = 3.5
+const SOURCE_MAX_HEIGHT = 26
+const SOURCE_SCALES = [1.35, 1.5, 1.65, 1.8, 2.0, 2.2]
+const SOURCE_ANGLE_STEP = 0.05
+const GOOD_SCORE = 150
+const KEEP_OUT = [
+  [CAMP, 32],
+  [BEAR, 26],
+  [SPAWN, 26],
+]
+
+const EMPTY = { points: [], levels: [], base: [], bedHeights: [], lengths: [], mouthIndex: 0, maxCut: 0 }
 
 let cache = null
 let field = null
+let fieldBed = null
 
 const smooth = (t) => t * t * (3 - 2 * t)
 
+function allowed(x, z) {
+  if (Math.abs(x) > EXTENT_LIMIT || Math.abs(z) > EXTENT_LIMIT) return false
+  if (x > EAST_LIMIT || z > SOUTH_LIMIT) return false
+  for (const [p, r] of KEEP_OUT) {
+    if (Math.hypot(x - p.x, z - p.z) < r) return false
+  }
+  return true
+}
+
 function gradient(x, z) {
-  const eps = 0.7
+  const eps = 0.8
   return [
     (baseHeight(x + eps, z) - baseHeight(x - eps, z)) / (2 * eps),
     (baseHeight(x, z + eps) - baseHeight(x, z - eps)) / (2 * eps),
   ]
 }
 
-function shoreCrossing(cos, sin) {
-  let inside = -1
-  for (let k = 0.75; k >= 0.35; k -= 0.05) {
-    const h = baseHeight(LAKE.x + cos * LAKE.rx * k, LAKE.z + sin * LAKE.rz * k)
-    if (h < 0) {
-      inside = k
-      break
-    }
-  }
-  if (inside < 0) return null
-  for (let k = inside + 0.01; k <= 1.25; k += 0.01) {
-    const x = LAKE.x + cos * LAKE.rx * k
-    const z = LAKE.z + sin * LAKE.rz * k
-    if (baseHeight(x, z) > 0) return { x, z }
-  }
-  return null
-}
+function walk(sx, sz) {
+  let px = sx
+  let pz = sz
+  let dirX = LAKE.x - sx
+  let dirZ = LAKE.z - sz
+  const dl = Math.hypot(dirX, dirZ) || 1
+  dirX /= dl
+  dirZ /= dl
+  let level = baseHeight(sx, sz)
+  const points = [[sx, sz]]
+  const levels = [level]
+  const base = [level]
+  let maxCut = 0
+  let mouthIndex = -1
+  let reached = false
 
-function outletCandidates() {
-  const candidates = []
-  for (let a = 0; a < Math.PI * 2; a += 0.025) {
-    const cos = Math.cos(a)
-    const sin = Math.sin(a)
-    const crossing = shoreCrossing(cos, sin)
-    if (!crossing) continue
-    const { x, z } = crossing
-    const blocked =
-      Math.hypot(x - CAMP.x, z - CAMP.z) < 10 ||
-      Math.hypot(x - BEAR.x, z - BEAR.z) < 10 ||
-      Math.hypot(x - SPAWN.x, z - SPAWN.z) < 10
-    let dry = true
-    for (let r = 1; r <= 3; r++) {
-      if (baseHeight(x + cos * r, z + sin * r) < 0.05) {
-        dry = false
-        break
-      }
-    }
-    candidates.push({
-      x,
-      z,
-      dirx: cos,
-      dirz: sin,
-      blocked,
-      dry,
-      rim: baseHeight(x + cos * 4, z + sin * 4),
-    })
-  }
-  candidates.sort((p, q) => {
-    const tier = (c) => (c.dry && !c.blocked && c.rim <= 3 ? 0 : 1)
-    return tier(p) - tier(q) || p.rim - q.rim
-  })
-  return candidates
-}
-
-function walkFrom(c) {
-  const points = []
-  let px = c.x
-  let pz = c.z
-  let dirX = c.dirx
-  let dirZ = c.dirz
-  let stuck = 0
-  let prevH = baseHeight(px, pz)
-  let minH = prevH
-  let wetSteps = 0
-  for (let step = 0; step < CREEK_MAX_POINTS; step++) {
+  for (let step = 1; step < CREEK_MAX_POINTS; step++) {
     const [gx, gz] = gradient(px, pz)
-    let downX = -gx
-    let downZ = -gz
-    const gl = Math.hypot(downX, downZ)
-    if (gl > 1e-5) {
-      downX /= gl
-      downZ /= gl
-    } else {
-      downX = dirX
-      downZ = dirZ
-    }
-    const outward = step < 4 ? 0.75 : 0.5
-    const tx = dirX * outward + downX * (1 - outward)
-    const tz = dirZ * outward + downZ * (1 - outward)
-    const meander = noise2D(step * 0.3, 91.3) * 0.5
+    const gl = Math.hypot(gx, gz)
+    const downX = gl > 1e-4 ? -gx / gl : 0
+    const downZ = gl > 1e-4 ? -gz / gl : 0
+    let lakeX = LAKE.x - px
+    let lakeZ = LAKE.z - pz
+    const ll = Math.hypot(lakeX, lakeZ) || 1
+    lakeX /= ll
+    lakeZ /= ll
+    const pooled = base[base.length - 1] - level > 0.05
+    const wDown = pooled ? 0.15 : 0.6
+    const wLake = pooled ? 0.5 : 0.2
+    const tx = downX * wDown + lakeX * wLake + dirX * 0.35
+    const tz = downZ * wDown + lakeZ * wLake + dirZ * 0.35
+    const meander = noise2D(step * 0.21 + sx * 0.013, 37.7 + sz * 0.013) * 0.4
     const cm = Math.cos(meander)
     const sm = Math.sin(meander)
     const rx = tx * cm - tz * sm
@@ -117,64 +98,91 @@ function walkFrom(c) {
     dirZ = rz / rl
     const nx = px + dirX * SPACING
     const nz = pz + dirZ * SPACING
-    if (Math.abs(nx) > EXTENT_LIMIT || Math.abs(nz) > EXTENT_LIMIT) break
-    if (step > 12 && Math.hypot(nx - c.x, nz - c.z) < 6) break
-    const nh = baseHeight(nx, nz)
-    if (nh < -0.4) break
-    if (nh < 0.05) {
-      wetSteps++
-      if (wetSteps > 4) break
-    } else {
-      wetSteps = 0
-    }
-    if (nh > minH + 0.6) break
-    if (nh > prevH + 0.3) {
-      stuck++
-      if (stuck > 6) break
-    } else {
-      stuck = 0
-    }
+    if (!allowed(nx, nz)) return null
+    const h = baseHeight(nx, nz)
+    level = Math.min(level, h)
+    const cut = h - level
+    if (cut > MAX_CUT) return null
+    maxCut = Math.max(maxCut, cut)
     px = nx
     pz = nz
-    prevH = nh
-    minH = Math.min(minH, nh)
     points.push([px, pz])
+    levels.push(level)
+    base.push(h)
+    if (mouthIndex < 0 && h < 0) mouthIndex = points.length - 1
+    if (h < -CREEK_MOUTH_DEPTH) {
+      reached = true
+      break
+    }
   }
-  return points
+  if (!reached || mouthIndex < 0) return null
+  return { points, levels, base, maxCut, mouthIndex }
 }
 
-function buildCreek() {
-  let fallback = null
-  for (const c of outletCandidates().slice(0, 60)) {
-    const walk = walkFrom(c)
-    if (walk.length >= 15) return assemble(c, walk)
-    if (walk.length >= 8 && (!fallback || walk.length > fallback.walk.length)) fallback = { c, walk }
+function sourceCandidates() {
+  const out = []
+  for (const k of SOURCE_SCALES) {
+    for (let a = 0; a < Math.PI * 2; a += SOURCE_ANGLE_STEP) {
+      const x = LAKE.x + Math.cos(a) * LAKE.rx * k
+      const z = LAKE.z + Math.sin(a) * LAKE.rz * k
+      if (!allowed(x, z)) continue
+      const h = baseHeight(x, z)
+      if (h < SOURCE_MIN_HEIGHT || h > SOURCE_MAX_HEIGHT) continue
+      out.push({ x, z, h })
+    }
   }
-  return fallback ? assemble(fallback.c, fallback.walk) : { points: [], bedHeights: [], lengths: [], mouthIndex: 0 }
+  return out
 }
 
-function assemble(c, walk) {
-  const head = [
-    [c.x - c.dirx * 3.5, c.z - c.dirz * 3.5],
-    [c.x - c.dirx * 1.75, c.z - c.dirz * 1.75],
-    [c.x, c.z],
-  ]
-  const points = head.concat(walk)
+function score(route) {
+  const length = route.points.length * SPACING
+  if (length < MIN_LENGTH) return -Infinity
+  const drop = route.base[0]
+  return Math.min(length, 140) + drop * 2 - route.maxCut * 25
+}
+
+function assemble(route) {
+  const { points, levels, base, mouthIndex, maxCut } = route
+  for (let i = levels.length - 2; i >= 0; i--) {
+    levels[i] = Math.min(levels[i], levels[i + 1] + MAX_STEP_DROP * SPACING)
+  }
+  const smoothed = levels.map((_, i) => {
+    let sum = 0
+    let count = 0
+    for (let j = Math.max(0, i - SMOOTH_RADIUS); j <= Math.min(levels.length - 1, i + SMOOTH_RADIUS); j++) {
+      sum += levels[j]
+      count++
+    }
+    return sum / count
+  })
   const lengths = [0]
   for (let i = 1; i < points.length; i++) {
     lengths.push(
       lengths[i - 1] + Math.hypot(points[i][0] - points[i - 1][0], points[i][1] - points[i - 1][1])
     )
   }
-  const bedHeights = points.map(([x, z]) => baseHeight(x, z) - CREEK_DEPTH)
-  let mouthIndex = 0
-  for (let i = 0; i < points.length; i++) {
-    if (baseHeight(points[i][0], points[i][1]) >= 0) {
-      mouthIndex = i
-      break
+  for (let i = 0; i < smoothed.length; i++) {
+    smoothed[i] = Math.min(smoothed[i], base[i] - MIN_CHANNEL + CREEK_DEPTH)
+    if (i > 0) smoothed[i] = Math.min(smoothed[i], smoothed[i - 1])
+  }
+  const bedHeights = smoothed.map((l) => l - CREEK_DEPTH)
+  return { points, levels: smoothed, base, bedHeights, lengths, mouthIndex, maxCut }
+}
+
+function buildCreek() {
+  let best = null
+  let bestScore = -Infinity
+  for (const c of sourceCandidates()) {
+    const route = walk(c.x, c.z)
+    if (!route) continue
+    const s = score(route)
+    if (s > bestScore) {
+      best = route
+      bestScore = s
+      if (s >= GOOD_SCORE) break
     }
   }
-  return { points, lengths, bedHeights, mouthIndex }
+  return best ? assemble(best) : EMPTY
 }
 
 export function getCreek() {
@@ -182,13 +190,17 @@ export function getCreek() {
   return cache
 }
 
-function buildField(points) {
+function buildField(points, bedHeights) {
   field = new Float32Array(FIELD_RES * FIELD_RES).fill(FAR)
-  const reach = ((CREEK_BANK_RADIUS / FIELD_EXTENT) * FIELD_RES) + 1
+  fieldBed = new Float32Array(FIELD_RES * FIELD_RES)
+  const cell = FIELD_EXTENT / FIELD_RES
+  const reach = Math.ceil(CREEK_BANK_RADIUS / cell) + 3
   const toI = (v) => (v / FIELD_EXTENT + 0.5) * FIELD_RES
   for (let s = 0; s < points.length - 1; s++) {
     const [ax, az] = points[s]
     const [bx, bz] = points[s + 1]
+    const bedA = bedHeights[s]
+    const bedB = bedHeights[s + 1]
     const ia = toI(ax)
     const ja = toI(az)
     const ib = toI(bx)
@@ -207,36 +219,53 @@ function buildField(points) {
         const t = Math.max(0, Math.min(1, ((wx - ax) * dx + (wz - az) * dz) / lenSq))
         const d = Math.hypot(wx - ax - dx * t, wz - az - dz * t)
         const k = j * FIELD_RES + i
-        if (d < field[k]) field[k] = d
+        if (d < field[k]) {
+          field[k] = d
+          fieldBed[k] = bedA + (bedB - bedA) * t
+        }
       }
     }
   }
 }
 
-function sampleField(x, z) {
+function ensureField() {
+  if (!field) {
+    const creek = getCreek()
+    buildField(creek.points, creek.bedHeights)
+  }
+}
+
+function fieldIndex(x, z) {
   const fx = (x / FIELD_EXTENT + 0.5) * FIELD_RES - 0.5
   const fz = (z / FIELD_EXTENT + 0.5) * FIELD_RES - 0.5
   const i = Math.floor(fx)
   const j = Math.floor(fz)
-  if (i < 0 || j < 0 || i >= FIELD_RES - 1 || j >= FIELD_RES - 1) return FAR
-  const tx = fx - i
-  const tz = fz - j
-  const k = j * FIELD_RES + i
-  const top = field[k] * (1 - tx) + field[k + 1] * tx
-  const bottom = field[k + FIELD_RES] * (1 - tx) + field[k + FIELD_RES + 1] * tx
+  if (i < 0 || j < 0 || i >= FIELD_RES - 1 || j >= FIELD_RES - 1) return null
+  return [j * FIELD_RES + i, fx - i, fz - j]
+}
+
+function bilinear(arr, k, tx, tz) {
+  const top = arr[k] * (1 - tx) + arr[k + 1] * tx
+  const bottom = arr[k + FIELD_RES] * (1 - tx) + arr[k + FIELD_RES + 1] * tx
   return top * (1 - tz) + bottom * tz
 }
 
 export function creekDistance(x, z) {
-  if (!field) buildField(getCreek().points)
-  return sampleField(x, z)
+  ensureField()
+  const idx = fieldIndex(x, z)
+  if (!idx) return FAR
+  return bilinear(field, idx[0], idx[1], idx[2])
 }
 
-export function creekCarve(x, z) {
+export function creekCarve(x, z, base = baseHeight(x, z)) {
   if (!getCreek().points.length) return 0
-  const d = creekDistance(x, z)
+  ensureField()
+  const idx = fieldIndex(x, z)
+  if (!idx) return 0
+  const d = bilinear(field, idx[0], idx[1], idx[2])
   if (d >= CREEK_BANK_RADIUS) return 0
-  const inner = CREEK_HALF_WIDTH * 0.75
+  const bed = bilinear(fieldBed, idx[0], idx[1], idx[2])
+  const inner = CREEK_HALF_WIDTH * 0.8
   const t = Math.min(1, Math.max(0, (CREEK_BANK_RADIUS - d) / (CREEK_BANK_RADIUS - inner)))
-  return CREEK_DEPTH * smooth(t)
+  return Math.max(0, base - bed) * smooth(t)
 }

@@ -1,5 +1,5 @@
 // Compact 2D simplex noise (Stefan Gustavson public-domain port).
-import { benchmark, createRandom } from './benchmark/config'
+import { benchmark, createRandom } from './benchmark/config.js'
 const F2 = 0.5 * (Math.sqrt(3) - 1)
 const G2 = (3 - Math.sqrt(3)) / 6
 

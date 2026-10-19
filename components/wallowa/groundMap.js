@@ -41,7 +41,7 @@ export function paintBlob(channel, x, z, radius, strength = 1, falloff = 1.5) {
   stamp(channel, x, z, radius, strength, falloff)
 }
 
-export function paintPath(channel, points, halfWidth, strength = 1) {
+export function paintPath(channel, points, halfWidth, strength = 1, falloff = 0.6) {
   for (let s = 0; s < points.length - 1; s++) {
     const [ax, az] = points[s]
     const [bx, bz] = points[s + 1]
@@ -49,7 +49,7 @@ export function paintPath(channel, points, halfWidth, strength = 1) {
     const steps = Math.max(1, Math.ceil(len / (TEXEL * 0.75)))
     for (let k = 0; k <= steps; k++) {
       const t = k / steps
-      stamp(channel, ax + (bx - ax) * t, az + (bz - az) * t, halfWidth, strength, 0.6)
+      stamp(channel, ax + (bx - ax) * t, az + (bz - az) * t, halfWidth, strength, falloff)
     }
   }
 }

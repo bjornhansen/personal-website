@@ -1,10 +1,8 @@
 import { terrainHeight } from './Terrain'
 import { noise2D } from './noise'
-import { BEAR, CAMP, SPAWN } from './Bear'
+import { BEAR, CAMP, LAKE, SPAWN } from './places'
 
 export const TRAIL_HALF_WIDTH = 0.8
-
-export const LAKE = { x: -10, z: 45, rx: 78, rz: 96 }
 
 function shoreTrail() {
   const start = Math.atan2((CAMP.z - LAKE.z) / LAKE.rz, (CAMP.x - LAKE.x) / LAKE.rx)
