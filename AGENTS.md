@@ -46,7 +46,10 @@ and keep its measurements and implementation status current.
     (timeOfDay, isNight, activeSection, bearArrived).
   - Placement must sample `terrainHeight`/`meadowMask`/`lakeBowl` from
     `Terrain.js` — never hardcode ground heights — and skip
-    `trailDistance()` < ~1–2 units.
+    `trailDistance()` < ~1–2 units and `creekDistance()` < ~1–2 units
+    (from `creekbed.js`). The creek carve is part of `terrainHeight`; the
+    lake depth bake must use `baseHeight`, never `terrainHeight`, or the
+    lake plane will cover the creek channel.
   - All sky/light/fog colors come from `palette.js` via the shared uniforms
     in `atmosphere.js`; don't hardcode time-of-day colors in components.
     New large/distant materials should be wrapped in `withAtmosphere()`.

@@ -60,11 +60,21 @@ Sky, light, and water:
 - Lake is a planar `Reflector` with a baked depth texture; ripple rings come
   from fish jumps and clicks (`uRipples`), splashes emit `splash` in the
   store for the audio.
+- Creek: an outlet stream flows from the lake through a carved creekbed
+  (`creekbed.js`: deterministic route + distance field; the carve is part of
+  `terrainHeight`, so trails/placement/depth stay consistent). The bed reads
+  as wet pebbles through the ground map's alpha channel (`CREEK = 3`); the
+  water is one static ribbon mesh with a scrolling-noise shader
+  (`Creek.js`) — analytic sky reflection, bank foam, no extra render passes.
+  The lake's depth bake uses `baseHeight` so the plane never covers the
+  channel. Placement must avoid `creekDistance()` like `trailDistance()`.
 - Ground detail: `groundMap.js` is a shared texture (R contact shadow,
-  G canopy/forest floor, B dirt) painted by Forest, CampProps, and the trails
-  in `trails.js`; placement code should avoid `trailDistance()`.
+  G canopy/forest floor, B dirt, A creek/wet) painted by Forest, CampProps,
+  and the trails in `trails.js`; placement code should avoid
+  `trailDistance()` and `creekDistance()`.
 - Debug params: `?t=19.5` (local hour), `?date=2026-06-21`, `?speed=600`
-  (timelapse), `?clouds=0..1`, `?lat=45.28&lng=-117.21`.
+  (timelapse), `?clouds=0..1`, `?lat=45.28&lng=-117.21`, `?cam=x,y,z&look=x,y,z`
+  (fixed debug camera).
 
 ### Performance goals and plan
 

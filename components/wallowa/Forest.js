@@ -8,6 +8,7 @@ import { terrainHeight, meadowMask, lakeBowl } from './Terrain'
 import { CAMP, BEAR } from './Bear'
 import { CANOPY, CONTACT, commitGround, paintBlob } from './groundMap'
 import { trailDistance } from './trails'
+import { creekDistance } from './creekbed'
 import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
 
 const model = (n) => `/models/nature/${n}.glb`
@@ -110,12 +111,14 @@ export default function Forest({
       if (Math.hypot(x - BEAR.x, z - BEAR.z) < 5) continue
       if (h > -0.35 && h < 1.2 && placed.pebble.length < caps.pebble && rand() < 0.6) {
         if (trailDistance(x, z) < 1) continue
+        if (creekDistance(x, z) < 1) continue
         pick('pebble', x, h - 0.08, z, 0.6 + rand() * 1.1)
         continue
       }
       if (h < 1.4) continue
       if (lakeBowl(x, z) > 0.05) continue
       if (trailDistance(x, z) < 2.2) continue
+      if (creekDistance(x, z) < 2.2) continue
 
       const meadow = meadowMask(x, z)
       const clump = (rand() + rand() + rand()) / 3

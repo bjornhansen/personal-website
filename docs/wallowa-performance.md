@@ -278,7 +278,7 @@ repetitions. Available experiments: `baseline`, `dpr`, `cadence` (uncapped and
 30 FPS versus the 60 FPS default), `reflection`, `reflection-resolution`,
 `reflection-msaa`, `reflection-cadence`, `terrain`, `terrain-bake` (procedural
 detail versus the baked default), `sky`, `forest`, `ground-cover`, `shadows`,
-`mist`, `overhead`, and `previous-default` (the pre-optimization defaults:
+`mist`, `creek` (water ribbon hidden), `overhead`, and `previous-default` (the pre-optimization defaults:
 uncapped with procedural terrain detail). The DPR
 experiment locks reflection dimensions across the pair. `--list` prints the
 run URLs and profile without opening a browser.
@@ -323,6 +323,7 @@ for every run.
 | `terrain`, `sky` | `full` | `simple` uses diagnostic shading with the existing geometry and shared atmosphere. `terrain=procedural` restores the pre-bake per-pixel detail noise for A/B runs. |
 | `forest`, `groundCover` | `1` | Fraction of each existing instanced batch to submit (0–1); generate all placements/ground footprints and retain full bounds first. |
 | `shadows`, `mist` | `on` | `off` disables that feature independently. |
+| `creek` | `on` | `off` hides the creek water ribbon for A/B runs; the carved terrain is part of the world and is not toggleable. |
 | `camera` | `animated` | `fixed` removes drift and snaps to authored destinations for diagnostic comparisons. |
 | `metrics`, `gpu`, `panel` | `on` | `off` disables collection, GPU queries only, or the DOM panel respectively. |
 | `label` | `baseline` | Human-readable experiment label included in the export. |
@@ -565,6 +566,50 @@ and 5.4M triangles across the main and reflection passes.
 | Shadows off | M5 Pro / day | −9% | −1% | negligible | — | Unmeasured | — | Diagnostic | Minor |
 | Mist off | Dawn | −8% | −1% | negligible | — | Unmeasured | — | Diagnostic | Dawn-only, minor |
 | Ground cover 0% / 50% | M5 Pro / day | −7% / −4% | ~0% | negligible | — | Unmeasured | — | Diagnostic | Minor |
+
+#### Implemented feature: outlet creek, 2026-10-18
+
+An outlet stream now flows from the lake (`creekbed.js` + `Creek.js`). The
+route is generated deterministically from the seeded noise: the lowest
+shoreline rim with a dry outward path is picked, and a downhill walk with
+noise meander traces the centerline. A 512² distance field (~1 MB,
+bilinear-sampled, built lazily in a few ms) carves the channel into
+`terrainHeight` via `creekCarve`, so the terrain mesh, trails, vegetation
+placement, and shadows all see the carved world automatically. The creekbed
+is painted into the ground map's free alpha channel (`CREEK = 3`) and the
+terrain shader mixes wet-stone/pebble shading from it; the lake depth bake
+uses `baseHeight` so the lake plane never renders over the carved channel.
+The water is one static ribbon mesh (one draw call, ~36 triangles for the
+seed-1849 route, `depthWrite: false`, `renderOrder: 2` after the lake) with
+a fragment shader from the Lake toolbox: two scrolled `vnoised` octaves,
+Fresnel over analytic `skyGradient` reflections, a rare sun glint,
+thresholded-noise bank/patch foam, and alpha fades at the mouth and far end.
+All animation is `uTime`-driven (frozen at 0 under reduced motion); there is
+no per-frame CPU work and no extra render passes.
+
+Measured on the reference M5 Pro (Mac17,9), production build in Playwright
+Chromium, day scenario, 60-second samples, two alternating pairs
+(`bench=1&seed=1849`, `creek=on` vs `creek=off`; the carve is part of the
+world and not toggleable, so this isolates the ribbon pass):
+
+| Metric | creek on (baseline) | creek off | Paired Δ (off − on) |
+| --- | --- | --- | --- |
+| GPU ms (median) | 6.07 | 6.25 | +2.9% (pairs 1.6…4.2), opposite sign to p95 (−0.7%) |
+| GPU ms (mean) | 6.27 | 6.31 | +0.6% (0.2…1.0) |
+| GPU busy % | 37.6% | 37.9% | +0.6% |
+| Draw calls | 40 | 39 | +1 (the ribbon; also visible in the reflection pass) |
+| Triangles | 2,706,452 | 2,706,416 | +36 |
+| CPU ms (median) | 0.20 | 0.25 | +0.05 ms (within run noise) |
+| Rendered FPS / budget misses | 60.0 / 0% | 60.0 / ~0% | none |
+
+Baseline GPU noise was 0.2%; the paired deltas disagree in direction between
+median and p95, so the ribbon pass cost is below what two pairs can resolve —
+at most ~1% of GPU time (~0.06 ms). Init cost: the route + distance field
+build lazily inside the first `terrainHeight` calls (~5–7 ms in the
+`terrain-generation` span; `creek-generation` itself is ≤ 0.1 ms for the
+ribbon). Placement counts are unchanged: the rejection loops refill their
+caps (creek avoidance widens the channel exclusion by ~110 units² of the
+160,000-unit² sampling area).
 
 #### Implemented optimizations, 2026-09-25
 

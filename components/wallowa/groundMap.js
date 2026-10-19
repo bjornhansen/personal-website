@@ -7,6 +7,7 @@ const TEXEL = GROUND_EXTENT / RES
 export const CONTACT = 0
 export const CANOPY = 1
 export const DIRT = 2
+export const CREEK = 3
 
 const data = new Uint8Array(RES * RES * 4)
 

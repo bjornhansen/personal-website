@@ -6,8 +6,9 @@ import * as THREE from 'three'
 import { fbm, ridged, ridgedMulti, noise2D } from './noise'
 import { withAtmosphere } from './atmosphere'
 import { NOISE_GLSL } from './glsl'
-import { DIRT, GROUND_EXTENT, commitGround, groundTexture, paintBlob, paintPath } from './groundMap'
+import { DIRT, GROUND_EXTENT, CREEK, commitGround, groundTexture, paintBlob, paintPath } from './groundMap'
 import { TRAIL_HALF_WIDTH, getTrails } from './trails'
+import { CREEK_HALF_WIDTH, creekCarve, getCreek } from './creekbed'
 import { CAMP } from './Bear'
 import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
 import { DETAIL_TILE, createTerrainDetail } from './terrainDetail'
@@ -16,7 +17,7 @@ const SIZE = GROUND_EXTENT
 const SEGMENTS = 256
 const WATER_LEVEL = 0
 
-export function terrainHeight(x, z) {
+export function baseHeight(x, z) {
   const worldX = x * 0.012
   const worldZ = z * 0.012
   const warpX = fbm(worldX * 0.9 + 5.2, worldZ * 0.9 + 1.3, 3) * 0.5
@@ -51,6 +52,10 @@ export function terrainHeight(x, z) {
   h += shoreNoise * (0.3 + 1 - Math.abs(bowl))
 
   return h
+}
+
+export function terrainHeight(x, z) {
+  return baseHeight(x, z) - creekCarve(x, z)
 }
 
 export function meadowMask(x, z) {
@@ -135,10 +140,13 @@ const surfaceColor = (fields) => /* glsl */ `
   float clump = smoothstep(0.5, 0.56, clumpNoise);
   base = mix(base, base * vec3(0.8, 0.9, 0.76), clump * 0.6);
 
+  float creek = ground.a;
   float shoreZone = 1.0 - smoothstep(1.2, 1.9, vGroundPos.y + (nMid - 0.5) * 0.4);
   float gap = 1.0 - smoothstep(0.02, 0.12, stoneEdge);
   vec3 pebbles = base * mix(0.86, 1.14, stoneId) * (1.0 - gap * 0.16);
-  base = mix(base, pebbles, shoreZone);
+  base = mix(base, pebbles, max(shoreZone, creek * 0.75));
+  vec3 creekStone = mix(uRockDark * 0.8, uRock * 1.02, stoneId) * (0.82 + nFine * 0.25);
+  base = mix(base, creekStone, creek);
 
   vec3 bloom = voronoi(gp * 2.4 + 50.0);
   float greenness = clamp((diffuseColor.g - diffuseColor.r) * 6.0, 0.0, 1.0);
@@ -162,9 +170,10 @@ const surfaceColor = (fields) => /* glsl */ `
 
   float waterline = vGroundPos.y + (nFine - 0.5) * 0.15;
   float wet = (1.0 - smoothstep(0.05, 0.55, waterline)) * step(-0.6, waterline);
+  wet = max(wet, creek);
   base *= mix(1.0, 0.6, wet * (1.0 - snowMask));
 
-  base = mix(base, petalColor, petal * (1.0 - floorMask) * (1.0 - dirt) * (1.0 - rockMask) * (1.0 - snowMask) * (1.0 - shoreZone));
+  base = mix(base, petalColor, petal * (1.0 - floorMask) * (1.0 - dirt) * (1.0 - rockMask) * (1.0 - snowMask) * (1.0 - shoreZone) * (1.0 - creek));
   base *= 1.0 - ground.r * 0.6;
   diffuseColor.rgb = base;
 `
@@ -183,6 +192,14 @@ function paintCampGround() {
   getTrails().forEach((path) => paintPath(DIRT, path, TRAIL_HALF_WIDTH, 0.9))
   paintBlob(DIRT, CAMP.x, CAMP.z, 10, 1, 0.4)
   paintBlob(DIRT, CAMP.x - 12, CAMP.z + 3, 3.4, 1, 0.5)
+  const creek = getCreek()
+  if (creek.points.length > 3) {
+    paintPath(CREEK, creek.points, CREEK_HALF_WIDTH + 0.4, 1)
+    for (let i = creek.mouthIndex; i < creek.points.length; i += 5) {
+      const [x, z] = creek.points[i]
+      paintBlob(CREEK, x, z, 2.4, 0.45, 1.2)
+    }
+  }
   commitGround()
 }
 

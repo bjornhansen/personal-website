@@ -39,6 +39,7 @@ export function parseBenchmark(search) {
     groundCover: number('groundCover', 1, 0, 1),
     shadows: choice('shadows', 'on', ['on', 'off']),
     mist: choice('mist', 'on', ['on', 'off']),
+    creek: choice('creek', 'on', ['on', 'off']),
     camera: choice('camera', 'animated', ['animated', 'fixed']),
     metrics: choice('metrics', 'on', ['on', 'off']),
     gpu: choice('gpu', 'on', ['on', 'off']),

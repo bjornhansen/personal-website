@@ -5,6 +5,7 @@ import { Canvas, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import Terrain from './Terrain'
 import Lake from './Lake'
+import Creek from './Creek'
 import LakeMist from './LakeMist'
 import Bear from './Bear'
 import CampProps from './CampProps'
@@ -59,6 +60,7 @@ export default function Scene({ Benchmark }) {
 
       <Terrain />
       <Lake quality={isMobile ? 'low' : 'high'} />
+      <Creek />
       <LakeMist />
       <Suspense fallback={null}>
         <Forest

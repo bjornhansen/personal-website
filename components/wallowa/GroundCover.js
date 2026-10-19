@@ -7,6 +7,7 @@ import { withAtmosphere } from './atmosphere'
 import { terrainHeight, meadowMask } from './Terrain'
 import { CAMP } from './Bear'
 import { trailDistance } from './trails'
+import { creekDistance } from './creekbed'
 import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
 
 const model = (n) => `/models/nature/${n}.glb`
@@ -62,6 +63,7 @@ export default function GroundCover({
       if (!inMeadow && !nearCamp && !forestPatch) continue
       if (Math.hypot(x - CAMP.x, z - CAMP.z) < 8) continue
       if (trailDistance(x, z) < 1.1) continue
+      if (creekDistance(x, z) < 1.1) continue
 
       const r = rand()
       if (placed[2].length < counts[2] && r < 0.14 && meadow > 0.64) {

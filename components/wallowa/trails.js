@@ -4,7 +4,7 @@ import { BEAR, CAMP, SPAWN } from './Bear'
 
 export const TRAIL_HALF_WIDTH = 0.8
 
-const LAKE = { x: -10, z: 45, rx: 78, rz: 96 }
+export const LAKE = { x: -10, z: 45, rx: 78, rz: 96 }
 
 function shoreTrail() {
   const start = Math.atan2((CAMP.z - LAKE.z) / LAKE.rz, (CAMP.x - LAKE.x) / LAKE.rx)

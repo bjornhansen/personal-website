@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSceneStore } from './store'
@@ -11,6 +11,17 @@ import { benchmark, benchmarkState } from './benchmark/config'
 
 const OVERVIEW_POS = new THREE.Vector3(0, 28, 185)
 const OVERVIEW_TARGET = new THREE.Vector3(0, 0, 20)
+
+function debugViewpoint() {
+  const q = new URLSearchParams(window.location.search)
+  const cam = q.get('cam')
+  const look = q.get('look')
+  if (!cam || !look) return null
+  const c = cam.split(',').map(Number)
+  const l = look.split(',').map(Number)
+  if (c.length !== 3 || l.length !== 3 || [...c, ...l].some(Number.isNaN)) return null
+  return { pos: new THREE.Vector3(...c), target: new THREE.Vector3(...l) }
+}
 
 function viewpointFor(id) {
   const { x, z } = SPOTS[id]
@@ -37,15 +48,16 @@ export default function CameraRig() {
   const camera = useThree((s) => s.camera)
   const activeSection = useSceneStore((s) => s.activeSection)
   const reducedMotion = usePrefersReducedMotion()
+  const debugView = useMemo(() => (typeof window === 'undefined' ? null : debugViewpoint()), [])
   const posGoal = useRef(OVERVIEW_POS.clone())
   const targetGoal = useRef(OVERVIEW_TARGET.clone())
   const sampleReset = useRef(false)
 
   useEffect(() => {
-    const view = activeSection ? viewpointFor(activeSection) : { pos: OVERVIEW_POS, target: OVERVIEW_TARGET }
+    const view = debugView ?? (activeSection ? viewpointFor(activeSection) : { pos: OVERVIEW_POS, target: OVERVIEW_TARGET })
     posGoal.current.copy(view.pos)
     targetGoal.current.copy(view.target)
-  }, [activeSection])
+  }, [activeSection, debugView])
 
   useFrame((state, delta) => {
     const t = benchmark ? benchmarkState.animationTime : state.clock.elapsedTime
@@ -53,7 +65,7 @@ export default function CameraRig() {
 
     if (benchmark) {
       const section = useSceneStore.getState().activeSection
-      const view = section ? viewpointFor(section) : { pos: OVERVIEW_POS, target: OVERVIEW_TARGET }
+      const view = debugView ?? (section ? viewpointFor(section) : { pos: OVERVIEW_POS, target: OVERVIEW_TARGET })
       posGoal.current.copy(view.pos)
       targetGoal.current.copy(view.target)
       if (benchmarkState.sampleStarted && !sampleReset.current) {
