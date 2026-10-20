@@ -40,6 +40,7 @@ export function parseBenchmark(search) {
     shadows: choice('shadows', 'on', ['on', 'off']),
     mist: choice('mist', 'on', ['on', 'off']),
     creek: choice('creek', 'on', ['on', 'off']),
+    animals: choice('animals', 'on', ['on', 'off']),
     camera: choice('camera', 'animated', ['animated', 'fixed']),
     metrics: choice('metrics', 'on', ['on', 'off']),
     gpu: choice('gpu', 'on', ['on', 'off']),

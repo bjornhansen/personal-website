@@ -278,7 +278,7 @@ repetitions. Available experiments: `baseline`, `dpr`, `cadence` (uncapped and
 30 FPS versus the 60 FPS default), `reflection`, `reflection-resolution`,
 `reflection-msaa`, `reflection-cadence`, `terrain`, `terrain-bake` (procedural
 detail versus the baked default), `sky`, `forest`, `ground-cover`, `shadows`,
-`mist`, `creek` (water ribbon hidden), `overhead`, and `previous-default` (the pre-optimization defaults:
+`mist`, `creek` (water ribbon hidden), `animals` (deer herd hidden), `overhead`, and `previous-default` (the pre-optimization defaults:
 uncapped with procedural terrain detail). The DPR
 experiment locks reflection dimensions across the pair. `--list` prints the
 run URLs and profile without opening a browser.
@@ -324,6 +324,7 @@ for every run.
 | `forest`, `groundCover` | `1` | Fraction of each existing instanced batch to submit (0–1); generate all placements/ground footprints and retain full bounds first. |
 | `shadows`, `mist` | `on` | `off` disables that feature independently. |
 | `creek` | `on` | `off` hides the creek water ribbon for A/B runs; the carved terrain is part of the world and is not toggleable. |
+| `animals` | `on` | `off` removes the deer herd (three skinned actors, blob shadows, wander simulation). |
 | `camera` | `animated` | `fixed` removes drift and snaps to authored destinations for diagnostic comparisons. |
 | `metrics`, `gpu`, `panel` | `on` | `off` disables collection, GPU queries only, or the DOM panel respectively. |
 | `label` | `baseline` | Human-readable experiment label included in the export. |

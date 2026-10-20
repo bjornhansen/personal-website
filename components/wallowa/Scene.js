@@ -14,6 +14,7 @@ import FlyCamera, { flyEnabled } from './FlyCamera'
 import Greeting from './Greeting'
 import Forest from './Forest'
 import GroundCover from './GroundCover'
+import Animals from './Animals'
 import Atmosphere from './DayNight'
 import Sky from './Sky'
 import { useIsMobile } from './hooks'
@@ -81,6 +82,7 @@ export default function Scene({ Benchmark }) {
           flowers={isMobile ? 100 : 260}
         />
       </Suspense>
+      <Animals count={isMobile ? 2 : 3} />
 
       <Bear />
       <CampProps />

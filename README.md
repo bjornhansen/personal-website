@@ -36,9 +36,15 @@ Behavior conventions:
 - Bear review: `/wallowa/bear` is a separate studio with orbit, camera presets,
   playback speed, pause, bones, and export reload controls. Source files,
   regeneration, and validation are documented in [Bear asset](docs/bear-asset.md).
-- Animal library: CC0 Quaternius deer, stag, fox, and wolf GLBs and editable
-  Blender sources are imported for future scene placement. See
-  [Animal assets](docs/animal-assets.md) for clips, source links, and integration notes.
+- Wildlife: a herd of one stag and two does (`Animals.js`) grazes in a
+  tree-free clearing on the south shore (`HERD` in `places.js`), visible in
+  the default view's lower-left. Each is a skinned clone with a small state
+  machine (idle / eating / head-low / short walks to validated targets,
+  one walker at a time), blob shadows instead of shadow-map shadows, and
+  stride-matched walking. CC0 Quaternius deer, stag, fox, and wolf GLBs are
+  trimmed by `scripts/trim-animals.mjs` (needed clips only, colors baked to
+  vertex colors, one draw call each). See
+  [Animal assets](docs/animal-assets.md).
 - Respects `prefers-reduced-motion`; mobile gets reduced counts and DPR clamp.
 
 Sky, light, and water:

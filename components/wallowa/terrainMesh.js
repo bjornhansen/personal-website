@@ -59,10 +59,12 @@ export function groundHeight(x, z) {
   return h + gx * (u - ou) * TERRAIN_CELL + gz * (v - ov) * TERRAIN_CELL
 }
 
-export function groundGradient(x, z) {
+export function groundGradient(x, z, out = [0, 0]) {
   const [ix, iy, u, v] = locate(x, z)
   const [, gx, gz] = plane(ix, iy, u, v)
-  return [gx, gz]
+  out[0] = gx
+  out[1] = gz
+  return out
 }
 
 export function groundSlope(x, z) {

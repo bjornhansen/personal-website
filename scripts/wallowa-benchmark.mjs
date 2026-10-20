@@ -58,6 +58,7 @@ const experiments = {
   shadows: [{ shadows: 'off' }],
   mist: [{ mist: 'off' }],
   creek: [{ creek: 'off' }],
+  animals: [{ animals: 'off' }],
   overhead: [{ metrics: 'off' }],
 }
 if (!Object.hasOwn(experiments, values.experiment)) throw new Error(`Unknown experiment: ${Object.keys(experiments).join(', ')}`)

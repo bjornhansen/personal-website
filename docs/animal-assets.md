@@ -1,6 +1,7 @@
 # Quaternius animal assets
 
-Status: imported and technically validated; ready for scene placement.
+Status: deer and stag are placed in the scene as a grazing herd
+(`components/wallowa/Animals.js`); fox and wolf are packaged but unused.
 
 Source: [Ultimate Animated Animals, July 2021](https://quaternius.com/packs/ultimateanimatedanimals.html),
 by Quaternius, the creator of the scene's vegetation assets.
@@ -8,81 +9,86 @@ The [provided Google Drive folder](https://drive.google.com/drive/folders/1uJ3N5
 contains 12 animals. The four forest-wildlife models selected here are deer,
 stag, fox, and wolf.
 
-## Imported files
+## Files
 
-| Animal | Runtime file | Triangles | Joints | Clips | GLB size |
-| --- | --- | ---: | ---: | ---: | ---: |
-| Deer | `public/models/animals/Deer.glb` | 2,098 | 46 | 13 | 1.92 MiB |
-| Stag | `public/models/animals/Stag.glb` | 3,670 | 38 | 13 | 1.95 MiB |
-| Fox | `public/models/animals/Fox.glb` | 1,848 | 51 | 12 | 1.82 MiB |
-| Wolf | `public/models/animals/Wolf.glb` | 1,962 | 51 | 12 | 1.83 MiB |
+| Animal | Runtime file (trimmed) | Size | Full GLB (source for trimming) | Triangles | Joints |
+| --- | --- | ---: | --- | ---: | ---: |
+| Deer | `public/models/animals/Deer.glb` | 329 KiB | `assets/animals/full/Deer.glb` (1.92 MiB) | 2,098 | 46 |
+| Stag | `public/models/animals/Stag.glb` | 362 KiB | `assets/animals/full/Stag.glb` (1.95 MiB) | 3,670 | 38 |
+| Fox | `public/models/animals/Fox.glb` | 334 KiB | `assets/animals/full/Fox.glb` (1.82 MiB) | 1,848 | 51 |
+| Wolf | `public/models/animals/Wolf.glb` | 340 KiB | `assets/animals/full/Wolf.glb` (1.83 MiB) | 1,962 | 51 |
 
 - Original editable `.blend` files: `assets/animals/`.
 - Original download URLs, sizes, and SHA-256 hashes: `assets/animals/manifest.json`.
 - Original license: `assets/animals/License.txt`, also distributed with the GLBs
   at `public/models/animals/License.txt`.
-- Original glTF downloads in this workspace: `.context/animal-pack/`.
+- The full GLBs are lossless packagings of the original glTF downloads (see
+  "Packaging"); the runtime GLBs are trimmed from them.
 
-The license text is preserved with normalized line endings/whitespace; manifest
-hashes describe the original downloaded bytes.
-
-All four have `Idle`, `Idle_2`, `Walk`, `Eating`, `Gallop`, `Gallop_Jump`,
-death, attack, and hit-reaction clips. Deer and stag also have `Idle_Headlow`;
-fox and wolf use `Idle_2_HeadLow`. Clip names and capitalization are preserved.
 The files are CC0 1.0 and may be included in this public repository.
 
-## Packaging
+## Packaging (full GLBs)
 
 The animated path in the existing asset converter packages each embedded glTF
 as a self-contained GLB:
 
 ```sh
-node scripts/convert-nature-pack.mjs .context/animal-pack public/models/animals --animated
+node scripts/convert-nature-pack.mjs .context/animal-pack assets/animals/full --animated
 ```
 
 For another workspace, download the four original `.gltf` files from the URLs
 in the manifest into a local directory and pass that as the first argument.
-The Blender files are editable source backups; packaging uses the supplied glTF
-exports so it does not re-bake or alter animation data.
-
 This path preserves all geometry, normals, material colors, vertex colors,
-bone hierarchy, bind matrices, and animation channels. It removes the base64
-wrapper and writes the same binary data into the GLB buffer. The original
-OBJ/MTL conversion path remains available for static vegetation; OBJ cannot
-preserve a skeletal rig or animation.
+bone hierarchy, bind matrices, and animation channels.
 
-Validation compared each GLB's JSON and binary data exactly against its source,
-then loaded it through Three.js's `GLTFLoader`, checked skin weights and joint
-indices, and sampled every animation for finite deformed vertex positions.
-The existing static converter was regression-checked against its previous
-version with byte-identical fixture outputs. These are technical import checks,
-not an in-scene visual or movement review.
+## Trimming (runtime GLBs)
+
+```sh
+node scripts/trim-animals.mjs            # assets/animals/full -> public/models/animals
+node scripts/trim-animals.mjs <in> <out>
+```
+
+Uses `@gltf-transform` (dev dependency) to:
+
+- keep only `Idle`, `Idle_2`, `Idle_Headlow`/`Idle_2_HeadLow`, `Eating`,
+  `Walk` (attack, death, hit, gallop, jump clips are dropped — about 90% of
+  the original bytes were animation keyframes);
+- bake each material's base color into `COLOR_0` and merge all primitives of a
+  mesh into one with a single white material, so each animal is one draw
+  call (the stag's antlers stay a second mesh attached to the head bone);
+- drop normals (the runtime material uses `flatShading`), UVs and tangents;
+- resample keyframes, quantize `COLOR_0` to 8-bit and `WEIGHTS_0` to 16-bit
+  (core-spec encodings, no extensions required), dedup and prune;
+- measure the `Walk` stride and store it as `strideLength` (native units per
+  walk cycle) and `walkDuration` in the scene extras, read at runtime via
+  `scene.userData`. The stride is the hoof's horizontal travel during its
+  longest ground-contact stretch, scaled to a full cycle, averaged over the
+  four `IK*Leg` targets: deer/stag 2.86, fox/wolf 2.18.
+
+Native full-height bounds are approximately 4.27 units for deer, 5.38 for
+stag (including antlers), and 2.67 for fox/wolf. The runtime scales deer by
+0.45 and stag by 0.47.
 
 ## Scene integration
 
-A small number of idling or grazing animals is a straightforward addition:
+`Animals.js` renders a herd of one stag and two does (one doe on mobile) in a
+tree-free clearing around `HERD` (`places.js`), on the south shore in the
+default camera's lower-left foreground:
 
-1. Load only the selected species through the scene's deferred loading path.
-2. Clone each actor with `SkeletonUtils.clone` so its pose is independent, while
-   sharing the source geometry and materials where appropriate.
-3. Use an `AnimationMixer` or drei's `useAnimations` to play `Idle` or `Eating`,
-   advancing with the existing capped frame loop's delta.
-4. Apply species-specific scale and ground alignment. Native full-height bounds
-   are approximately 4.27 units for deer, 5.38 for stag (including antlers),
-   and 2.67 for fox/wolf; these are not normalized to the custom bear's scale.
-5. Place from `terrainHeight`/`meadowMask`/`lakeBowl`, avoid trails, and check
-   actual rendered-ground contact. Preserve reduced-motion behavior and use
-   lower animal counts on mobile.
-6. Wrap materials with the shared atmosphere treatment for scene lighting/fog.
-
-The stag's antlers are a separate mesh attached to its bone hierarchy; keep that
-hierarchy intact. Native materials use several primitives (deer 7, stag 6,
-fox 5, wolf 4), and the full four-species library is about 7.52 MiB. Stream
-species as needed. Animated skeletons need their own actor poses; ordinary
-`InstancedMesh` does not provide independent skeletal animation.
-
-Wandering adds path selection, obstacles, terrain contact, gait-speed matching,
-and transitions. The files do not contain the custom bear's `strideLength`
-metadata, so walking speed should be measured from these clips rather than
-reusing the bear's stride constant. A pair of grazing deer is a useful first
-scene integration before adding moving wildlife.
+- Loaded in its own `Suspense` after the forest so vegetation appears first.
+  Each actor is a `SkeletonUtils.clone` sharing geometry, with one shared
+  `withAtmosphere` vertex-color material.
+- `findHome()` picks the flattest standable spot near `HERD` (ground height
+  0.6–8, slope < 0.22, clear of trails, creek, camp, Bear and the forest's
+  registered obstacles in `obstacles.js`). Placement waits until the forest
+  has registered its footprints.
+- Each actor runs a small state machine: idle (`Idle`/`Idle_2`), graze
+  (`Eating`), look (`Idle_Headlow`), walk (`Walk` to a validated target within
+  14 units of home; one walker at a time; path checked against obstacles;
+  walk `timeScale` follows actual speed from `strideLength`). Actions
+  cross-fade over 0.35 s. Ground height and pitch come from
+  `groundHeight`/`groundGradient` each frame.
+- Actors do not cast shadow-map shadows (that would force shadow re-renders
+  while they move); each has a soft blob shadow whose opacity follows the sun.
+- Reduced motion freezes the mixer and prevents wandering. `?bench=1` seeds the
+  wander RNG; `animals=off` removes the herd for A/B runs.

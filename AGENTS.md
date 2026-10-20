@@ -46,6 +46,12 @@ and keep its measurements and implementation status current.
     colors. Any new pack assets should go through it.
   - `components/wallowa/store.js` (zustand) is the experience state
     (timeOfDay, isNight, activeSection, bearArrived).
+  - Animals (`Animals.js`): skinned actors, not instanced. Keep counts
+    small, don't give them shadow-map shadows (moving casters force shadow
+    re-renders; use the blob shadow), validate every walk target with
+    `standable()` + `pathClear()` (obstacles registered by Forest in
+    `obstacles.js`), and run animal GLBs through `scripts/trim-animals.mjs`
+    (see `docs/animal-assets.md`).
   - Placement must sample `groundHeight`/`groundContact`/`groundSlope`
     (from `terrainMesh.js`, re-exported by `Terrain.js`) plus
     `meadowMask`/`lakeBowl` — never hardcode ground heights, and never use

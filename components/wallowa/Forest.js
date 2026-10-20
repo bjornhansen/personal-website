@@ -6,7 +6,9 @@ import * as THREE from 'three'
 import { withAtmosphere } from './atmosphere'
 import { groundContact, groundHeight, groundNormal, groundSlope, meadowMask, lakeBowl } from './Terrain'
 import { CAMP, BEAR } from './Bear'
+import { HERD } from './places'
 import { CANOPY, CONTACT, commitGround, paintBlob } from './groundMap'
+import { registerObstacles } from './obstacles'
 import { trailDistance } from './trails'
 import { CREEK_BANK_RADIUS, CREEK_HALF_WIDTH, creekDistance } from './creekbed'
 import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
@@ -101,6 +103,7 @@ export default function Forest({
       const jitter = scale * (0.85 + rand() * 0.35)
       const rot = rand() * Math.PI * 2
       if (TREES.has(kind) && groundSlope(x, z) > MAX_TREE_SLOPE[kind]) return
+      if ((TREES.has(kind) || kind === 'bush' || kind === 'berries') && Math.hypot(x - HERD.x, z - HERD.z) < 16) return
       placed[kind].push({ type: t, x, z, scale: jitter, rot })
     }
 
@@ -264,12 +267,15 @@ export default function Forest({
   }), [gltfs, pines, snowPines, aspens, willows, bushes, berries, rocks, mossRocks, logs, stumps, pebbles])
 
   useEffect(() => {
+    const obstacles = []
     footprints.forEach(({ kind, x, z, size }) => {
       const f = FOOTPRINT[kind]
-      const scale = kind === 'pine' || kind === 'pineSnow' || kind === 'aspen' || kind === 'willow' ? 1 : size
+      const scale = TREES.has(kind) ? 1 : size
       paintBlob(CONTACT, x, z, f.contact * scale, f.dark, 1.4)
       if (f.canopy) paintBlob(CANOPY, x, z, f.canopy, 0.9, 0.7)
+      if (kind !== 'pebble') obstacles.push({ x, z, radius: f.contact * scale * 0.6 })
     })
+    registerObstacles('forest', obstacles)
     commitGround()
     markBenchmark('forest-ready', { placed: footprints.length })
   }, [footprints])
