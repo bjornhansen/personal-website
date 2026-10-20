@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import { Reflector } from 'three/addons/objects/Reflector.js'
 import { ATMOSPHERE, ATMOSPHERE_GLSL, FOG_FAR, FOG_NEAR } from './atmosphere'
 import { NOISE_GLSL } from './glsl'
-import { baseHeight } from './Terrain'
+import { terrainHeight } from './Terrain'
 import { useSceneStore } from './store'
 import { usePrefersReducedMotion } from './hooks'
 import { benchmark, benchmarkState, createRandom, measureGeneration } from './benchmark/config'
@@ -15,7 +15,7 @@ import { createReflectionSchedule } from './reflectionSchedule'
 const CENTER = { x: -10, z: 45 }
 const WIDTH = 190
 const LENGTH = 240
-const DEPTH_RES = [96, 120]
+const DEPTH_RES = [192, 240]
 const MAX_DEPTH = 12
 const RIPPLES = 8
 const DROPS = 14
@@ -124,7 +124,7 @@ function bakeDepth() {
     for (let i = 0; i < w; i++) {
       const x = CENTER.x + ((i + 0.5) / w - 0.5) * WIDTH
       const z = CENTER.z + ((j + 0.5) / h - 0.5) * LENGTH
-      const depth = Math.max(0, -baseHeight(x, z))
+      const depth = Math.max(0, -terrainHeight(x, z))
       data[j * w + i] = Math.min(255, Math.round((depth / MAX_DEPTH) * 255))
     }
   }

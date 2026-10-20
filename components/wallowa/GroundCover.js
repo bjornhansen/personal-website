@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { withAtmosphere } from './atmosphere'
-import { groundContact, groundHeight, meadowMask } from './Terrain'
+import { groundContact, groundHeight, groundSlope, meadowMask } from './Terrain'
 import { CAMP } from './Bear'
 import { trailDistance } from './trails'
 import { CREEK_HALF_WIDTH, creekDistance } from './creekbed'
@@ -56,6 +56,7 @@ export default function GroundCover({
 
       const h = groundHeight(x, z)
       if (h < 0.8 || h > 16) continue
+      if (groundSlope(x, z) > 0.5) continue
       const meadow = meadowMask(x, z)
       const nearCamp = Math.hypot(x - CAMP.x, z - CAMP.z) < 26
       const inMeadow = meadow > 0.6

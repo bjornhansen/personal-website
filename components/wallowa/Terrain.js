@@ -193,8 +193,9 @@ export default function Terrain() {
       const n = (noise2D(x * 0.08, z * 0.08) + 1) * 0.5
       const meadow = meadowMask(x, z)
 
-      if (h < WATER_LEVEL + 1.6) {
-        const shore = THREE.MathUtils.smoothstep(h, WATER_LEVEL - 0.4, WATER_LEVEL + 1.6)
+      const band = WATER_LEVEL + 0.5 + 1.1 * (0.5 + 0.5 * noise2D(x * 0.035 + 7.7, z * 0.035 - 3.1))
+      if (h < band) {
+        const shore = THREE.MathUtils.smoothstep(h, WATER_LEVEL - 0.4, band)
         color.copy(cGraniteWet).lerp(cGranite, shore)
         if (h < WATER_LEVEL - 1.5) color.lerp(cSand, 0.5)
       } else if (meadow > 0.62) {
@@ -213,7 +214,7 @@ export default function Terrain() {
       snow += northness * THREE.MathUtils.smoothstep(h, 17, 25) * 0.7
       snow *= 1 - THREE.MathUtils.smoothstep(slope, 0.8, 1) * 0.6
 
-      surface[i * 2] = h < WATER_LEVEL + 1.6 ? 0 : rock
+      surface[i * 2] = h < band ? 0 : rock
       surface[i * 2 + 1] = Math.min(1, snow)
       colors[i * 3] = color.r
       colors[i * 3 + 1] = color.g

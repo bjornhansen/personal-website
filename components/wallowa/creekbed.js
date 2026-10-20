@@ -2,6 +2,7 @@ import { noise2D } from './noise.js'
 import { baseHeight } from './heightfield.js'
 import { BEAR, CAMP, LAKE, SPAWN } from './places.js'
 import { GROUND_EXTENT } from './groundMap.js'
+import { dcos, dsin } from './dmath.js'
 
 export const CREEK_HALF_WIDTH = 2.4
 export const CREEK_DEPTH = 1.6
@@ -89,8 +90,8 @@ function walk(sx, sz) {
     const tx = downX * wDown + lakeX * wLake + dirX * 0.35
     const tz = downZ * wDown + lakeZ * wLake + dirZ * 0.35
     const meander = noise2D(step * 0.21 + sx * 0.013, 37.7 + sz * 0.013) * 0.4
-    const cm = Math.cos(meander)
-    const sm = Math.sin(meander)
+    const cm = dcos(meander)
+    const sm = dsin(meander)
     const rx = tx * cm - tz * sm
     const rz = tx * sm + tz * cm
     const rl = Math.hypot(rx, rz) || 1
@@ -123,8 +124,8 @@ function sourceCandidates() {
   const out = []
   for (const k of SOURCE_SCALES) {
     for (let a = 0; a < Math.PI * 2; a += SOURCE_ANGLE_STEP) {
-      const x = LAKE.x + Math.cos(a) * LAKE.rx * k
-      const z = LAKE.z + Math.sin(a) * LAKE.rz * k
+      const x = LAKE.x + dcos(a) * LAKE.rx * k
+      const z = LAKE.z + dsin(a) * LAKE.rz * k
       if (!allowed(x, z)) continue
       const h = baseHeight(x, z)
       if (h < SOURCE_MIN_HEIGHT || h > SOURCE_MAX_HEIGHT) continue

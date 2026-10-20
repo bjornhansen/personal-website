@@ -1,19 +1,20 @@
 import { terrainHeight } from './Terrain'
 import { noise2D } from './noise'
 import { BEAR, CAMP, LAKE, SPAWN } from './places'
+import { datan2, dcos, dsin } from './dmath'
 
 export const TRAIL_HALF_WIDTH = 0.8
 
 function shoreTrail() {
-  const start = Math.atan2((CAMP.z - LAKE.z) / LAKE.rz, (CAMP.x - LAKE.x) / LAKE.rx)
+  const start = datan2((CAMP.z - LAKE.z) / LAKE.rz, (CAMP.x - LAKE.x) / LAKE.rx)
   const points = [[CAMP.x - 2, CAMP.z + 1]]
   for (let a = start + 0.05; a < start + 2.3; a += 0.03) {
     let k = 1.04 + noise2D(a * 3.1, 7.7) * 0.03
     let x = 0
     let z = 0
     for (let tries = 0; tries < 20; tries++) {
-      x = LAKE.x + Math.cos(a) * LAKE.rx * k
-      z = LAKE.z + Math.sin(a) * LAKE.rz * k
+      x = LAKE.x + dcos(a) * LAKE.rx * k
+      z = LAKE.z + dsin(a) * LAKE.rz * k
       if (terrainHeight(x, z) > 0.9) break
       k += 0.02
     }

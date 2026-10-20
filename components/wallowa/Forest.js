@@ -57,7 +57,7 @@ const FOOTPRINT = {
 }
 
 const TREES = new Set(['pine', 'pineSnow', 'aspen', 'willow'])
-const MAX_TREE_SLOPE = 0.6
+const MAX_TREE_SLOPE = { pine: 0.6, aspen: 0.5, willow: 0.5, pineSnow: 0.45 }
 
 function mulberry32(seed) {
   return function () {
@@ -100,7 +100,7 @@ export default function Forest({
       const t = variants[Math.floor(rand() * variants.length)]
       const jitter = scale * (0.85 + rand() * 0.35)
       const rot = rand() * Math.PI * 2
-      if (TREES.has(kind) && groundSlope(x, z) > MAX_TREE_SLOPE) return
+      if (TREES.has(kind) && groundSlope(x, z) > MAX_TREE_SLOPE[kind]) return
       placed[kind].push({ type: t, x, z, scale: jitter, rot })
     }
 

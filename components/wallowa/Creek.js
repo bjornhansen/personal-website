@@ -153,7 +153,8 @@ function buildRibbon() {
     const speed = THREE.MathUtils.clamp((slope / Math.max(weight, 1)) * 2.5, 0.15, 1)
     const fade =
       THREE.MathUtils.smoothstep(lengths[i], 0, SOURCE_FADE) *
-      THREE.MathUtils.smoothstep(base[i], -CREEK_MOUTH_DEPTH * 0.6, 0.1)
+      THREE.MathUtils.smoothstep(base[i], -CREEK_MOUTH_DEPTH * 0.6, 0.1) *
+      (1 - flood)
 
     for (let side = 0; side < 2; side++) {
       const v = i * 2 + side

@@ -60,8 +60,26 @@ Sky, light, and water:
 - Lake is a planar `Reflector` with a baked depth texture; ripple rings come
   from fish jumps and clicks (`uRipples`), splashes emit `splash` in the
   store for the audio.
-- Creek: an inlet stream descends from the mountain foot at the back-west
-  of the lake into its shore (`creekbed.js`). The source is chosen from a
+- Terrain (`heightfield.js`, React-free): an explicit shoreline (ellipse
+  from `LAKE` with low-frequency angular wobble, damped near camp) with a
+  beach whose slope varies along the shore and a basin profile inside; a
+  calm valley floor that rises gently away from the lake, with
+  derivative-damped "eroded" fbm hills (`erodedFbm` in `noise.js`) that are
+  flattened inside `meadowMask`; ridged peaks at the back (−z) and a soft
+  rise toward the side edges. The floor never drops below lake level away
+  from the shore, so there are no stray puddles. The world seed is pinned
+  (`WORLD_SEED` in `noise.js`, default 1849, `?seed=` override).
+- Ground contact: `terrainMesh.js` bakes the 257² height grid the terrain
+  geometry is built from and `groundHeight()`/`groundContact()`/
+  `groundNormal()` sample those exact triangles. Everything that sits on the
+  ground (vegetation, props, Bear, camera clamp) uses them; instances sink
+  to the minimum of a small contact ring and rocks/logs tilt to the slope.
+- Deterministic math: `dmath.js` (sin/cos/atan2/pow6 from basic arithmetic)
+  is used by heightfield, creek and trail code because V8 versions differ by
+  an ulp in those functions and the creek route walk is chaotic — Node and
+  Chromium picked different routes for the same seed before this.
+- Creek: an inlet stream descends from the mountain foot at the back of
+  the lake into its shore (`creekbed.js`). The source is chosen from a
   ring of candidates around the lake (camp/trail side excluded), the route is
   a gradient-descent walk toward the lake with meander, and the bed is the
   running minimum of the terrain along it (so it carves through small humps
@@ -72,7 +90,8 @@ Sky, light, and water:
   (`Creek.js`) whose surface sits a fixed depth above the bed, floods to lake
   level at the mouth, and uses a scrolling-noise shader with analytic sky
   reflection and foam — no extra render passes. The lake's depth bake uses
-  `baseHeight` so the plane never covers the channel. Placement must avoid
+  the carved `terrainHeight` at 192×240 so the lake fills the flooded
+  mouth, and the ribbon fades out as the channel floods. Placement must avoid
   `creekDistance()` (trees ≥ `CREEK_BANK_RADIUS + 2.5`, grass/pebbles ≥
   `CREEK_HALF_WIDTH + 1.5`). `npm run test:wallowa-creek` checks the route
   across seeds; `node scripts/wallowa-creek-probe.mjs <seed> --map` prints

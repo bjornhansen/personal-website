@@ -46,18 +46,28 @@ and keep its measurements and implementation status current.
     colors. Any new pack assets should go through it.
   - `components/wallowa/store.js` (zustand) is the experience state
     (timeOfDay, isNight, activeSection, bearArrived).
-  - Placement must sample `terrainHeight`/`meadowMask`/`lakeBowl` from
-    `Terrain.js` — never hardcode ground heights — and skip
+  - Placement must sample `groundHeight`/`groundContact`/`groundSlope`
+    (from `terrainMesh.js`, re-exported by `Terrain.js`) plus
+    `meadowMask`/`lakeBowl` — never hardcode ground heights, and never use
+    the analytic `terrainHeight` for anything that must touch the rendered
+    ground (it differs from the mesh triangles by up to ~2 units). Skip
     `trailDistance()` < ~1–2 units and `creekDistance()` < the creek
     constants in `creekbed.js` (`CREEK_BANK_RADIUS` + canopy for trees,
     `CREEK_HALF_WIDTH + 1.5` for ground cover). The creek carve is part of
-    `terrainHeight`; the lake depth bake must use `baseHeight`, never
-    `terrainHeight`, or the lake plane will cover the creek channel.
-  - `heightfield.js` (base terrain functions) and `places.js` (LAKE, CAMP,
-    BEAR, SPAWN) are React-free and Node-importable with explicit `.js`
-    imports; `creekbed.js` depends only on those so
-    `npm run test:wallowa-creek` can validate routes across seeds. Keep it
-    that way (no React/R3F imports in these modules).
+    `terrainHeight`; the lake depth bake uses the carved height so the lake
+    fills the flooded mouth.
+  - `heightfield.js` (base terrain functions), `places.js` (LAKE, CAMP,
+    BEAR, SPAWN), `dmath.js`, `terrainMesh.js` are React-free and
+    Node-importable with explicit `.js` imports; `creekbed.js` depends only
+    on those so `npm run test:wallowa-creek` can validate routes across
+    seeds. Keep it that way (no React/R3F imports in these modules).
+  - Route-affecting code (heightfield, creekbed, trails) must use `dmath.js`
+    (`dsin`/`dcos`/`datan2`/`pow6`) instead of `Math.sin/cos/atan2/pow/exp`:
+    those differ by an ulp across V8 versions and the creek walk is chaotic,
+    so Node tests and the browser would otherwise disagree on the route.
+    `Math.sqrt`/`hypot`/`floor`/`min`/`max` and plain arithmetic are fine.
+  - The world is seeded (`WORLD_SEED` in `noise.js`, default 1849,
+    `?seed=`), so screenshots and Node probes are comparable.
   - All sky/light/fog colors come from `palette.js` via the shared uniforms
     in `atmosphere.js`; don't hardcode time-of-day colors in components.
     New large/distant materials should be wrapped in `withAtmosphere()`.

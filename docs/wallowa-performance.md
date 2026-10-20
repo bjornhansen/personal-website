@@ -628,6 +628,28 @@ still reads paler than the lake from the overview; the wet-stone band is
 subtle where banks are already grey rock; faint reflection streaks across
 the stream near the mouth; the source starts without a pool.
 
+#### Terrain rework and mesh-sampled placement, 2026-10-19
+
+- `terrainMesh.js` bakes the 257² height grid once (~48 ms in Node, the
+  same cost as the previous per-vertex evaluation it replaces inside the
+  `terrain-generation` span) and `Terrain.js` builds its geometry from it.
+  `groundHeight()` interpolates the exact triangles the GPU draws, so
+  placement no longer floats on the analytic surface (previously >0.1 unit
+  error on ~15% of valley samples, max 1.9). Forest/ground cover add a
+  6-sample contact ring per instance; negligible against the generation span.
+- `heightfield.js` is restructured (explicit shoreline + beach, calm valley
+  floor, derivative-damped "eroded" hills, meadows flattened). Valley median
+  slope fell from 0.27 to ~0.08; `baseHeight` cost is unchanged.
+- The lake depth bake now uses `terrainHeight` (carved) at 192×240 so the
+  lake fills the flooded creek mouth; ~21 ms in Node versus ~5 ms before.
+- `dmath.js` provides deterministic sin/cos/atan2/pow6 for terrain, creek
+  and trail code: V8 versions differ by an ulp in those functions and the
+  creek walk is chaotic, so Node and Chromium had picked different routes
+  for the same seed. Keep route-affecting code on `dmath` or basic
+  arithmetic/sqrt/hypot.
+- The world seed is pinned (`WORLD_SEED`, default 1849, `?seed=` override)
+  instead of `Math.random()` per load.
+
 #### Implemented optimizations, 2026-09-25
 
 Three changes followed from the screening:
