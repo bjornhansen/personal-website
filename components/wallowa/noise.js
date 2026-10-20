@@ -7,9 +7,21 @@ const GRAD = [
   1, 1, -1, 1, 1, -1, -1, -1, 1, 0, -1, 0, 0, 1, 0, -1,
 ]
 
+export const DEFAULT_SEED = 1849
+
+function worldSeed() {
+  if (benchmark) return benchmark.seed
+  if (typeof window === 'undefined') return DEFAULT_SEED
+  const raw = new URLSearchParams(window.location.search).get('seed')
+  const value = raw === null || raw === '' ? NaN : Number(raw)
+  return Number.isInteger(value) && value >= 0 ? value : DEFAULT_SEED
+}
+
+export const WORLD_SEED = worldSeed()
+
 const perm = new Uint8Array(512)
 const p = new Uint8Array(256)
-const random = benchmark ? createRandom(benchmark.seed) : Math.random
+const random = createRandom(WORLD_SEED)
 for (let i = 0; i < 256; i++) p[i] = i
 for (let i = 255; i > 0; i--) {
   const j = Math.floor(random() * (i + 1))

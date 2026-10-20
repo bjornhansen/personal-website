@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSceneStore } from './store'
-import { terrainHeight } from './Terrain'
+import { groundHeight } from './Terrain'
 import { SPOTS } from './CampProps'
 import { usePrefersReducedMotion } from './hooks'
 import { benchmark, benchmarkState } from './benchmark/config'
@@ -25,7 +25,7 @@ export function debugViewpoint() {
 
 function viewpointFor(id) {
   const { x, z } = SPOTS[id]
-  const gy = terrainHeight(x, z)
+  const gy = groundHeight(x, z)
   if (id === 'contact') {
     return {
       pos: new THREE.Vector3(x - 7, gy + 2.6, z + 8),

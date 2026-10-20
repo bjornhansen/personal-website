@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { withAtmosphere } from './atmosphere'
-import { terrainHeight, meadowMask, lakeBowl } from './Terrain'
+import { groundContact, groundHeight, groundNormal, groundSlope, meadowMask, lakeBowl } from './Terrain'
 import { CAMP, BEAR } from './Bear'
 import { CANOPY, CONTACT, commitGround, paintBlob } from './groundMap'
 import { trailDistance } from './trails'
@@ -43,18 +43,21 @@ const URLS = TYPES.map((t) => model(t.file))
 const KINDS = ['pine', 'pineSnow', 'aspen', 'willow', 'bush', 'berries', 'rock', 'rockMoss', 'log', 'stump', 'pebble']
 
 const FOOTPRINT = {
-  pine: { contact: 1.7, canopy: 4.6, dark: 0.75 },
-  pineSnow: { contact: 1.6, canopy: 4.2, dark: 0.7 },
-  aspen: { contact: 1.2, canopy: 3.2, dark: 0.45 },
-  willow: { contact: 1.5, canopy: 3.2, dark: 0.5 },
-  bush: { contact: 1.1, canopy: 0, dark: 0.55 },
-  berries: { contact: 1.1, canopy: 0, dark: 0.55 },
-  rock: { contact: 1.3, canopy: 0, dark: 0.6 },
-  rockMoss: { contact: 1.2, canopy: 0, dark: 0.6 },
-  log: { contact: 1.6, canopy: 0, dark: 0.55 },
-  stump: { contact: 1, canopy: 0, dark: 0.55 },
-  pebble: { contact: 0.5, canopy: 0, dark: 0.45 },
+  pine: { contact: 1.7, canopy: 4.6, dark: 0.75, ring: 0.55, sink: 0.03 },
+  pineSnow: { contact: 1.6, canopy: 4.2, dark: 0.7, ring: 0.5, sink: 0.03 },
+  aspen: { contact: 1.2, canopy: 3.2, dark: 0.45, ring: 0.4, sink: 0.03 },
+  willow: { contact: 1.5, canopy: 3.2, dark: 0.5, ring: 0.5, sink: 0.03 },
+  bush: { contact: 1.1, canopy: 0, dark: 0.55, ring: 0.55, sink: 0.1 },
+  berries: { contact: 1.1, canopy: 0, dark: 0.55, ring: 0.55, sink: 0.1 },
+  rock: { contact: 1.3, canopy: 0, dark: 0.6, ring: 0.6, sink: 0.22, tilt: 1 },
+  rockMoss: { contact: 1.2, canopy: 0, dark: 0.6, ring: 0.6, sink: 0.22, tilt: 1 },
+  log: { contact: 1.6, canopy: 0, dark: 0.55, ring: 0.5, sink: 0.12, tilt: 1 },
+  stump: { contact: 1, canopy: 0, dark: 0.55, ring: 0.6, sink: 0.06, tilt: 0.3 },
+  pebble: { contact: 0.5, canopy: 0, dark: 0.45, ring: 0.6, sink: 0.25, tilt: 1 },
 }
+
+const TREES = new Set(['pine', 'pineSnow', 'aspen', 'willow'])
+const MAX_TREE_SLOPE = 0.6
 
 function mulberry32(seed) {
   return function () {
@@ -92,10 +95,13 @@ export default function Forest({
       return acc
     }, {})
 
-    const pick = (kind, x, y, z, scale) => {
+    const pick = (kind, x, z, scale) => {
       const variants = TYPES.filter((t) => t.kind === kind)
       const t = variants[Math.floor(rand() * variants.length)]
-      placed[kind].push({ type: t, x, y, z, scale: scale * (0.85 + rand() * 0.35), rot: rand() * Math.PI * 2 })
+      const jitter = scale * (0.85 + rand() * 0.35)
+      const rot = rand() * Math.PI * 2
+      if (TREES.has(kind) && groundSlope(x, z) > MAX_TREE_SLOPE) return
+      placed[kind].push({ type: t, x, z, scale: jitter, rot })
     }
 
     let attempts = 0
@@ -105,14 +111,14 @@ export default function Forest({
       attempts++
       const x = (rand() - 0.5) * 400
       const z = (rand() - 0.5) * 400
-      const h = terrainHeight(x, z)
+      const h = groundHeight(x, z)
       if (h > 24) continue
       if (Math.hypot(x - CAMP.x, z - CAMP.z) < 17) continue
       if (Math.hypot(x - BEAR.x, z - BEAR.z) < 5) continue
       if (h > -0.35 && h < 1.2 && placed.pebble.length < caps.pebble && rand() < 0.6) {
         if (trailDistance(x, z) < 1) continue
         if (creekDistance(x, z) < CREEK_HALF_WIDTH * 0.5) continue
-        pick('pebble', x, h - 0.08, z, 0.6 + rand() * 1.1)
+        pick('pebble', x, z, 0.6 + rand() * 1.1)
         continue
       }
       if (h < 1.4) continue
@@ -127,63 +133,63 @@ export default function Forest({
 
       if (creek < CREEK_BANK_RADIUS + 2.5) {
         if (rand() < 0.45 && placed.rock.length < caps.rock) {
-          pick('rock', x, h, z, 0.4 + rand() * 0.9)
+          pick('rock', x, z, 0.4 + rand() * 0.9)
         } else if (rand() < 0.4 && placed.rockMoss.length < caps.rockMoss) {
-          pick('rockMoss', x, h, z, 0.4 + rand() * 0.9)
+          pick('rockMoss', x, z, 0.4 + rand() * 0.9)
         } else if (rand() < 0.3 && h < 10 && placed.bush.length < caps.bush) {
-          pick('bush', x, h, z, 1)
+          pick('bush', x, z, 1)
         }
         continue
       }
 
       if (h > 14 && placed.pineSnow.length < caps.pineSnow) {
-        pick('pineSnow', x, h, z, 1)
+        pick('pineSnow', x, z, 1)
         continue
       }
       if (meadow > 0.64 && h < 14 && clump > 0.5) {
         if (placed.aspen.length < caps.aspen && h < 12) {
-          pick('aspen', x, h, z, 1)
+          pick('aspen', x, z, 1)
         } else if (h < 8 && placed.bush.length < caps.bush) {
-          pick('bush', x, h, z, 1)
+          pick('bush', x, z, 1)
         } else if (placed.berries.length < caps.berries) {
-          pick('berries', x, h, z, 1)
+          pick('berries', x, z, 1)
         }
         continue
       }
       if (meadow < 0.58 && h < 12 && rand() < 0.04) {
         if (placed.log.length < caps.log && rand() < 0.6) {
-          pick('log', x, h, z, 0.8 + rand() * 0.5)
+          pick('log', x, z, 0.8 + rand() * 0.5)
           continue
         }
         if (placed.stump.length < caps.stump) {
-          pick('stump', x, h, z, 0.8 + rand() * 0.4)
+          pick('stump', x, z, 0.8 + rand() * 0.4)
           continue
         }
       }
       if (meadow < 0.58 && clump > 0.28 && placed.pine.length < caps.pine) {
-        pick('pine', x, h, z, 1)
+        pick('pine', x, z, 1)
         continue
       }
       if (meadow < 0.58 && rand() < 0.35 && placed.pine.length < caps.pine) {
-        pick('pine', x, h, z, 1)
+        pick('pine', x, z, 1)
         continue
       }
       if (shore > 0 && shore < 0.22 && h < 3 && placed.willow.length < caps.willow) {
-        pick('willow', x, h, z, 1)
+        pick('willow', x, z, 1)
         continue
       }
       if (rand() < 0.4 && placed.rock.length < caps.rock) {
-        pick('rock', x, h, z, 0.4 + rand() * 0.9)
+        pick('rock', x, z, 0.4 + rand() * 0.9)
       } else if (rand() < 0.25 && placed.rockMoss.length < caps.rockMoss) {
-        pick('rockMoss', x, h, z, 0.4 + rand() * 0.9)
+        pick('rockMoss', x, z, 0.4 + rand() * 0.9)
       }
     }
 
     const woodLog = TYPES.find((t) => t.file === 'WoodLog')
     const treeStump = TYPES.find((t) => t.file === 'TreeStump')
-    placed.log.push({ type: woodLog, x: CAMP.x - 12, y: terrainHeight(CAMP.x - 12, CAMP.z + 3), z: CAMP.z + 3, scale: 1, rot: 0.7 })
-    placed.log.push({ type: woodLog, x: CAMP.x + 14, y: terrainHeight(CAMP.x + 14, CAMP.z - 8), z: CAMP.z - 8, scale: 0.9, rot: 2.4 })
-    placed.stump.push({ type: treeStump, x: CAMP.x + 8, y: terrainHeight(CAMP.x + 8, CAMP.z - 12), z: CAMP.z - 12, scale: 1, rot: 1.2 })
+    placed.log.push({ type: woodLog, x: CAMP.x - 12, z: CAMP.z + 3, scale: 1, rot: 0.7 })
+    placed.log.push({ type: woodLog, x: CAMP.x + 14, z: CAMP.z - 8, scale: 0.9, rot: 2.4 })
+    placed.stump.push({ type: treeStump, x: CAMP.x + 8, z: CAMP.z - 12, scale: 1, rot: 1.2 })
 
     const material = withAtmosphere(new THREE.MeshStandardMaterial({
       vertexColors: true,
@@ -194,27 +200,45 @@ export default function Forest({
 
     const m = new THREE.Matrix4()
     const q = new THREE.Quaternion()
+    const yaw = new THREE.Quaternion()
     const up = new THREE.Vector3(0, 1, 0)
+    const normal = new THREE.Vector3()
     const p = new THREE.Vector3()
     const s = new THREE.Vector3()
     const tint = new THREE.Color()
+    const n = [0, 1, 0]
 
     const group = new THREE.Group()
     TYPES.forEach((t, idx) => {
       const instances = placed[t.kind].filter((i) => i.type.file === t.file)
       if (!instances.length) return
+      const f = FOOTPRINT[t.kind]
+      const tree = TREES.has(t.kind)
       const source = gltfs[idx].scene.children[0]
       const geo = source.geometry.clone()
       geo.computeBoundingBox()
-      const height = geo.boundingBox.max.y - geo.boundingBox.min.y
-      const min = geo.boundingBox.min.y
+      const bb = geo.boundingBox
+      const height = bb.max.y - bb.min.y
+      const min = bb.min.y
+      const baseRadius = Math.max(bb.max.x - bb.min.x, bb.max.z - bb.min.z) / 2
       const mesh = new THREE.InstancedMesh(geo, material, instances.length)
       mesh.castShadow = true
       mesh.receiveShadow = true
       instances.forEach((inst, i) => {
         const scale = (t.target / height) * inst.scale
-        q.setFromAxisAngle(up, inst.rot)
-        p.set(inst.x, inst.y - min * scale, inst.z)
+        const ring = tree ? f.ring : baseRadius * scale * f.ring
+        const y = groundContact(inst.x, inst.z, ring) - f.sink * height * scale
+        yaw.setFromAxisAngle(up, inst.rot)
+        if (f.tilt) {
+          groundNormal(inst.x, inst.z, n)
+          normal.set(n[0], n[1], n[2])
+          if (f.tilt < 1) normal.lerp(up, 1 - f.tilt).normalize()
+          q.setFromUnitVectors(up, normal).multiply(yaw)
+        } else {
+          normal.copy(up)
+          q.copy(yaw)
+        }
+        p.set(inst.x, y, inst.z).addScaledVector(normal, -min * scale)
         s.set(scale, scale, scale)
         m.compose(p, q, s)
         mesh.setMatrixAt(i, m)

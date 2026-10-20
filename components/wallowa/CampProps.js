@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import { useSceneStore } from './store'
-import { terrainHeight } from './Terrain'
+import { groundHeight } from './Terrain'
 import { CAMP } from './Bear'
 import { usePrefersReducedMotion } from './hooks'
 import { CURSOR_POINTER } from './cursor'
@@ -146,13 +146,13 @@ export default function CampProps() {
 
   return (
     <group>
-      <Tent position={[tent[0], terrainHeight(tent[0], tent[1]), tent[1]]} />
-      <Campfire position={[fire[0], terrainHeight(fire[0], fire[1]), fire[1]]} />
+      <Tent position={[tent[0], groundHeight(tent[0], tent[1]), tent[1]]} />
+      <Campfire position={[fire[0], groundHeight(fire[0], fire[1]), fire[1]]} />
       <TrailheadSign
-        position={[sign[0], terrainHeight(sign[0], sign[1]), sign[1]]}
+        position={[sign[0], groundHeight(sign[0], sign[1]), sign[1]]}
       />
       {Object.entries(SPOTS).map(([id, { x, z }]) => (
-        <Marker key={id} id={id} position={[x, terrainHeight(x, z) + 3, z]} />
+        <Marker key={id} id={id} position={[x, groundHeight(x, z) + 3, z]} />
       ))}
     </group>
   )

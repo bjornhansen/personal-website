@@ -13,12 +13,14 @@ import { baseHeight, lakeBowl, meadowMask } from './heightfield'
 import { CAMP } from './places'
 import { benchmark, markBenchmark, measureGeneration } from './benchmark/config'
 import { DETAIL_TILE, createTerrainDetail } from './terrainDetail'
+import { TERRAIN_CELL, TERRAIN_SEGMENTS, TERRAIN_VERTS, getHeightGrid, vertexPosition } from './terrainMesh'
 
 const SIZE = GROUND_EXTENT
-const SEGMENTS = 256
+const SEGMENTS = TERRAIN_SEGMENTS
 const WATER_LEVEL = 0
 
 export { baseHeight, meadowMask, lakeBowl }
+export { groundHeight, groundContact, groundNormal, groundSlope } from './terrainMesh'
 
 export function terrainHeight(x, z) {
   const base = baseHeight(x, z)
@@ -169,20 +171,22 @@ export default function Terrain() {
     const colors = new Float32Array(pos.count * 3)
     const surface = new Float32Array(pos.count * 2)
     const color = new THREE.Color()
-    const sample = 2
+    const grid = getHeightGrid()
+    const N = TERRAIN_VERTS
 
     for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i)
-      const z = pos.getZ(i)
+      const [x, z] = vertexPosition(i)
+      const h = grid[i]
       const base = baseHeight(x, z)
-      const h = base - creekCarve(x, z, base)
       const channel = Math.min(1, (base - h) / CREEK_DEPTH)
       pos.setY(i, h)
 
-      const hx = terrainHeight(x + sample, z)
-      const hz = terrainHeight(x, z + sample)
-      const gx = (hx - h) / sample
-      const gz = (hz - h) / sample
+      const ix = i % N
+      const iy = Math.floor(i / N)
+      const hx = grid[iy * N + Math.min(ix + 1, N - 1)]
+      const hz = grid[Math.min(iy + 1, N - 1) * N + ix]
+      const gx = (hx - h) / TERRAIN_CELL
+      const gz = (hz - h) / TERRAIN_CELL
       const slope = Math.min(1, Math.sqrt(gx * gx + gz * gz) * 0.9)
       const northness = THREE.MathUtils.clamp(-gz * 0.8, 0, 1)
 

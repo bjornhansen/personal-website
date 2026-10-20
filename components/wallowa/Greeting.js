@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Html } from '@react-three/drei'
 import { useSceneStore } from './store'
-import { terrainHeight } from './Terrain'
+import { groundHeight } from './Terrain'
 import { BEAR } from './Bear'
 
 function line(hour, sunAltitude, name = 'traveler') {
@@ -25,7 +25,7 @@ export default function Greeting() {
   }, [])
 
   const visible = bearArrived && !expired && timeOfDay !== null
-  const y = terrainHeight(BEAR.x, BEAR.z)
+  const y = groundHeight(BEAR.x, BEAR.z)
 
   return (
     <Html

@@ -6,7 +6,7 @@ import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { clone } from 'three/addons/utils/SkeletonUtils.js'
 import { useSceneStore } from './store'
-import { terrainHeight } from './Terrain'
+import { groundHeight } from './Terrain'
 import { usePrefersReducedMotion } from './hooks'
 import { benchmark, benchmarkState, markBenchmark } from './benchmark/config'
 import { withAtmosphere } from './atmosphere'
@@ -62,7 +62,7 @@ function useWalkIn(start = SPAWN_V) {
     const previousX = pos.current.x
     const previousZ = pos.current.z
     pos.current.lerpVectors(start, DEST, eased)
-    pos.current.y = terrainHeight(pos.current.x, pos.current.z)
+    pos.current.y = groundHeight(pos.current.x, pos.current.z)
     if (!reducedMotion) {
       stepDistance.current = Math.hypot(pos.current.x - previousX, pos.current.z - previousZ)
     }

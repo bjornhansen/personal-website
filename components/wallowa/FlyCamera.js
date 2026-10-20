@@ -3,7 +3,7 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { terrainHeight } from './Terrain'
+import { groundHeight } from './Terrain'
 import { debugViewpoint } from './CameraRig'
 
 const MOVE_SPEED = 14
@@ -110,7 +110,7 @@ export default function FlyCamera() {
     if (k.KeyQ || k.ControlLeft || k.ControlRight) move.y -= 1
     if (move.lengthSq() > 0) camera.position.addScaledVector(move.normalize(), speed)
 
-    const ground = terrainHeight(camera.position.x, camera.position.z) + GROUND_CLEARANCE
+    const ground = groundHeight(camera.position.x, camera.position.z) + GROUND_CLEARANCE
     camera.position.setY(Math.max(camera.position.y, ground))
     camera.quaternion.setFromEuler(new THREE.Euler(yp.pitch, yp.yaw, 0, 'YXZ'))
   })

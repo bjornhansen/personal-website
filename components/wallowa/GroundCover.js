@@ -4,7 +4,7 @@ import { useEffect, useMemo } from 'react'
 import { useGLTF } from '@react-three/drei'
 import * as THREE from 'three'
 import { withAtmosphere } from './atmosphere'
-import { terrainHeight, meadowMask } from './Terrain'
+import { groundContact, groundHeight, meadowMask } from './Terrain'
 import { CAMP } from './Bear'
 import { trailDistance } from './trails'
 import { CREEK_HALF_WIDTH, creekDistance } from './creekbed'
@@ -42,8 +42,8 @@ export default function GroundCover({
     const counts = [grass, shortGrass, flowers]
     const placed = TYPES.map(() => [])
 
-    const place = (typeIdx, x, y, z, scale) =>
-      placed[typeIdx].push({ x, y, z, scale, rot: rand() * Math.PI * 2 })
+    const place = (typeIdx, x, z, scale) =>
+      placed[typeIdx].push({ x, z, scale, rot: rand() * Math.PI * 2 })
 
     let attempts = 0
     const need = counts.reduce((a, b) => a + b, 0)
@@ -54,7 +54,7 @@ export default function GroundCover({
       const z = (rand() - 0.5) * 340
       if (Math.hypot(x + 10, z - 45) > 165) continue
 
-      const h = terrainHeight(x, z)
+      const h = groundHeight(x, z)
       if (h < 0.8 || h > 16) continue
       const meadow = meadowMask(x, z)
       const nearCamp = Math.hypot(x - CAMP.x, z - CAMP.z) < 26
@@ -67,11 +67,11 @@ export default function GroundCover({
 
       const r = rand()
       if (placed[2].length < counts[2] && r < 0.14 && meadow > 0.64) {
-        place(2, x, h, z, 1)
+        place(2, x, z, 1)
       } else if (placed[1].length < counts[1] && r < 0.5) {
-        place(1, x, h, z, 1)
+        place(1, x, z, 1)
       } else if (placed[0].length < counts[0]) {
-        place(0, x, h, z, 1)
+        place(0, x, z, 1)
       }
     }
 
@@ -104,7 +104,7 @@ export default function GroundCover({
       instances.forEach((inst, i) => {
         const scale = (t.target / height) * inst.scale * (0.85 + rand() * 0.4)
         q.setFromAxisAngle(up, inst.rot)
-        p.set(inst.x, inst.y - min * scale, inst.z)
+        p.set(inst.x, groundContact(inst.x, inst.z, 0.2) - 0.04 - min * scale, inst.z)
         s.set(scale, scale, scale)
         m.compose(p, q, s)
         mesh.setMatrixAt(i, m)
